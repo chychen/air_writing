@@ -1,0 +1,13 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+    "python.linting.pylintArgs": [
+        //C0111 Missing docstring
+        //C0103 Invalid constant name
+        //C0301 Line too long
+        //C0303 trailing whitespace
+        //C0410 multiple import
+        //C0413:Import "XX" should be placed at the top of the module
+
+        "--disable=C0111,C0103,C0303,C0301,C0410,C0413"
+    ]
+}
