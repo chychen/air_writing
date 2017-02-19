@@ -7,7 +7,8 @@
         //C0303 trailing whitespace
         //C0410 multiple import
         //C0413:Import "XX" should be placed at the top of the module
-
-        "--disable=C0111,C0103,C0303,C0301,C0410,C0413"
+        //W0613:Unused argument 'controller'
+        //W0611:Unused import thread
+        "--disable=C0111,C0103,C0303,C0301,C0410,C0413,W0613,W0611"
     ]
 }

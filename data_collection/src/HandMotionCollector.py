@@ -20,7 +20,7 @@ import Leap
 class SampleListener(Leap.Listener):
     finger_names = ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']
     bone_names = ['Metacarpal', 'Proximal', 'Intermediate', 'Distal']
-
+    
     def on_init(self, controller):
         print "Initialized"
 
@@ -39,7 +39,7 @@ class SampleListener(Leap.Listener):
         frame = controller.frame()
 
         print "Frame id: %d, timestamp: %d, hands: %d, fingers: %d" % (
-              frame.id, frame.timestamp, len(frame.hands), len(frame.fingers))
+            frame.id, frame.timestamp, len(frame.hands), len(frame.fingers))
 
         # Get hands
         for hand in frame.hands:
