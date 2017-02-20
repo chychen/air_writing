@@ -11,6 +11,7 @@ from enum import Enum
 src_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
 # Windows and Linux
 arch_dir = '../libs/x64' if sys.maxsize > 2**32 else '../libs/x86'
+collected_data_dir = '../data/'
 # Mac
 #arch_dir = os.path.abspath(os.path.join(src_dir, '../lib'))
 sys.path.insert(0, os.path.abspath(os.path.join(src_dir, arch_dir)))
@@ -18,23 +19,43 @@ sys.path.insert(0, os.path.abspath(os.path.join(src_dir, "../libs")))
 import Leap
 
 Mode = Enum('Mode', 'START_RECORD END_RECORD DEFAULT_PROCESS')
-PROCESS_MODE = Mode.DEFAULT_PROCESS
+
+class UserInterface(object):
+
+    def __init__(self, mode):
+        self.MODE = mode
+    
+    def getMode(self):
+        return self.MODE
+
+    def setMode(self, mode):
+        self.MODE = mode
 
 class SampleListener(Leap.Listener):
     finger_names = ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']
     bone_names = ['Metacarpal', 'Proximal', 'Intermediate', 'Distal']
+    fileName = []
+    processMode = []
+
+    def setFileName(self, fileName, processMode):
+        self.fileName = fileName
+        self.processMode = processMode
     
-    def on_init(self, controller):
+    @classmethod
+    def on_init(cls, controller):
         print "Initialized"
 
-    def on_connect(self, controller):
+    @classmethod
+    def on_connect(cls, controller):
         print "Connected"
 
-    def on_disconnect(self, controller):
+    @classmethod
+    def on_disconnect(cls, controller):
         # Note: not dispatched when running in a debugger.
         print "Disconnected"
 
-    def on_exit(self, controller):
+    @classmethod
+    def on_exit(cls, controller):
         print "Exited"
 
     def on_frame(self, controller):
@@ -46,10 +67,14 @@ class SampleListener(Leap.Listener):
 
         # Get hands
         for hand in frame.hands:
-            
             for finger in hand.fingers:
-
+                f = open(self.fileName, 'a')
                 if self.finger_names[finger.type] == "Index":
+                    f.write("    %s finger, id: %d, length: %fmm, width: %fmm" % (
+                        self.finger_names[finger.type],
+                        finger.id,
+                        finger.length,
+                        finger.width))
                     print "    %s finger, id: %d, length: %fmm, width: %fmm" % (
                         self.finger_names[finger.type],
                         finger.id,
@@ -59,11 +84,18 @@ class SampleListener(Leap.Listener):
                     # Get bones
                     for b in range(0, 4):
                         bone = finger.bone(b)
+                        f.write("      Bone: %s, start: %s, end: %s, direction: %s" % (
+                            self.bone_names[bone.type],
+                            bone.prev_joint,
+                            bone.next_joint,
+                            bone.direction))
                         print "      Bone: %s, start: %s, end: %s, direction: %s" % (
                             self.bone_names[bone.type],
                             bone.prev_joint,
                             bone.next_joint,
                             bone.direction)
+                    
+                f.close()
 
             # handType = "Left hand" if hand.is_left else "Right hand"
 
@@ -108,9 +140,15 @@ class SampleListener(Leap.Listener):
         if not frame.hands.is_empty:
             print ""
 
-def main():
 
+def main():
+    if not os.path.exists(collected_data_dir):
+        os.makedirs(collected_data_dir)
     userName = raw_input("enter your name first: ")
+    fileName = collected_data_dir + userName + ".txt"
+    # Empty the file
+    f = open(fileName, 'w')
+    f.close()
     print "Hi %s!" % (userName)
     print "Instructions:"
     print "1. put your finger at starting position"
@@ -122,19 +160,22 @@ def main():
 
     # Create a sample listener and controller
     listener = SampleListener()
+    processMode = UserInterface(Mode.DEFAULT_PROCESS)
+    listener.setFileName(fileName, processMode)
     controller = Leap.Controller()
-
+    
+    
     while True:
         getchar = msvcrt.getch()
         if getchar == " ":
             controller.remove_listener(listener)
             break
         if getchar == "s": # start record
-            PROCESS_MODE = Mode.START_RECORD
+            processMode.setMode(Mode.START_RECORD)
             # Have the sample listener receive events from the controller
             controller.add_listener(listener)
         if getchar == "e": # end record
-            PROCESS_MODE = Mode.END_RECORD
+            processMode.setMode(Mode.END_RECORD)
             controller.remove_listener(listener)
 
 if __name__ == "__main__":
