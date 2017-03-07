@@ -1,26 +1,29 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.IO;
 using UnityEngine;
+using System.IO;
+using System.Text;
 using Leap;
 using Leap.Unity;
 
 public class test : MonoBehaviour {
 
-	public GameObject pre;
 	Controller controller;
+	LeapServiceProvider leapProvider;
 	int flg = 0;
-
+	bool isInit = false;
+	public GameObject prefab;
 
 	// Use this for initialization
 	void Start () {
 		controller = new Controller ();
 
+		leapProvider = FindObjectOfType<LeapServiceProvider> ();
 
 	}
 
-	
+
 
 	// Update is called once per frame
 	void Update () {
@@ -34,15 +37,28 @@ public class test : MonoBehaviour {
 		if (Input.GetKey ("down")) {
 			flg = 0;
 		}
-		Frame frame = controller.Frame (); // controller is a Controller object
+
+
+		Frame Lframe = controller.Frame (); // get frame for leap coordinate
+		Frame frame = leapProvider.CurrentFrame; // get frame for unity coordinate
 		if (frame.Hands.Count > 0 && flg == 1) {
+			List<Hand> Lhands = Lframe.Hands;
 			List<Hand> hands = frame.Hands;
+			Hand LFHand = Lhands [0];
 			Hand firstHand = hands [0];
-		
+
+
+			List<Finger> Lfingers = LFHand.Fingers;
 			List<Finger> fingers = firstHand.Fingers;
 
 			// fingers[1] is index
-			Finger index      = fingers [1];
+			Vector locus      = fingers [1].TipPosition;
+
+			Instantiate (prefab, locus.ToVector3(), Quaternion.identity);
+
+
+
+			Finger index = Lfingers [1];
 			Vector direction  = index.Direction;
 			Vector stabilized = index.StabilizedTipPosition;
 			float  lifetime   = index.TimeVisible;
@@ -57,27 +73,23 @@ public class test : MonoBehaviour {
 			print ("velocity is " + velocity);
 			print ("speed is " + speed);
 
-			var o = new GameObject ();
 
-			Instantiate (pre, position / 100, Quaternion.identity);
-		}
+			string path = @"C:\Users\ec131b\Desktop\Datas\onDesk\z\06";
+			if (!File.Exists (path)) {
+				string tmp = ">>\n";
+				File.WriteAllText (path,tmp, Encoding.UTF8);
+			}
 		
+			string qq = locus + "\n";
+			File.AppendAllText (path,qq,Encoding.UTF8);
+
+
+
+
+		}
+
 	}
 
 
 }
 
-
-namespace Leap {
-	public class LeapUtil {
-		public static Vector3 ToPositionVector3 ( Vector pos) {
-			return new Vector3 (pos.x, pos.y, -pos.z);
-		}
-		public static Vector3 ToVector3 (Vector v) {
-			return new Vector3 (v.x,v.y,v.z);	
-		}
-		public static void LookAt(Transform t, Vector n) {
-			t.LookAt (t.position + ToPositionVector3(n), Vector3.forward );
-		}
-	}
-}
