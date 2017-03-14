@@ -5,19 +5,17 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.widget import Widget
 from kivy.properties import NumericProperty, ReferenceListProperty,\
     ObjectProperty, ListProperty, OptionProperty, BooleanProperty
-from kivy.vector import Vector
-from kivy.clock import Clock
 from kivy.uix.button import Button
 from kivy.config import Config
 import kivy
 kivy.require('1.9.0')
-Config.set('graphics', 'width', '1000')
+Config.set('graphics', 'width', '800')
 Config.set('graphics', 'height', '800')
 
 class Cursor(Widget):
     """yeah
     """
-    rgba = property(None)
+    pass
 
 
 class SliderEngine(Widget):
@@ -39,10 +37,6 @@ class SliderEngine(Widget):
 
     def __init__(self, **kwargs):
         super(SliderEngine, self).__init__(**kwargs)
-        self.size_hint = kwargs['size_hin']
-        # cursor
-        self.cursorStart.rgba = (1, 1, 0, 1)
-        self.cursorEnd.rgba = (1, 0, 1, 1)
         # trajectory
         self.points = [600, 200, 200, 200, 100, 400, 300, 500,
                        500, 500, 300, 300, 500, 300,
@@ -86,32 +80,15 @@ class SliderEngine(Widget):
         self.updateSelectedPoints()
 
 
-class LabelTest(FloatLayout):
+class LabelEngine(FloatLayout):
+    lastButton = ObjectProperty(None)
+    nextButton = ObjectProperty(None)
 
     def __init__(self, *args, **kwargs):
-        super(LabelTest, self).__init__(*args, **kwargs)
-        slider = SliderEngine(
-            size_hin=(1, .8),
-            pos_hint={'x':0, 'y':0}
-        )
-        # button
-        lastButton = Button(
-            on_press=self.lastButtoncallback,
-            text="Last",
-            size_hin=(.5, .2),
-            pos_hint={'x':0, 'y':.8}
-        )
-        lastButton.font_size = 24
-        lastButton.background_color = (0, 1, 1, 1)
-        nextButton = Button(
-            on_press=self.nextButtoncallback,
-            text="Next",
-            size_hin=(.5, .2),
-            pos_hint={'x':.5, 'y':.8}
-        )
-        self.add_widget(slider)
-        self.add_widget(lastButton)
-        self.add_widget(nextButton)
+        super(LabelEngine, self).__init__(*args, **kwargs)
+        self.lastButton.bind(on_press=self.lastButtoncallback)
+        self.nextButton.bind(on_press=self.nextButtoncallback)
+
     
     def lastButtoncallback(self, instance):
         print 'The button <%s> is being pressed' % instance.text
@@ -124,7 +101,7 @@ class LabelingApp(App):
     """yeah
     """
     def build(self):
-        Label = LabelTest()
+        Label = LabelEngine()
         return Label
 
 
