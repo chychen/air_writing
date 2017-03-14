@@ -5,7 +5,7 @@ void log();
 
 fstream ptr;
 string tmp;
-int table[26][26];
+int table[52][26];
 bool flg = false;
 list<string> mylist;
 
@@ -17,17 +17,18 @@ bool compare_nocase (const std::string& first, const std::string& second){
 int main() {
 	
 	
-	
-	ptr.open("google-10000-english-usa.txt",ios::in);
+	ptr.open("3000words.txt",ios::in);
+	//ptr.open("google-10000-english-usa.txt",ios::in);
 	
 	//build table
 	while( !ptr.eof() ) {
 		ptr >> tmp;
-		
+		cout << tmp << endl;
 		if ( tmp.size() > 1 ){ 
 			mylist.push_back(tmp);
 			for ( int i = 0 ; i < tmp.size()-1 ; ++i ){
-				++table[tmp[i] - 'a' ][tmp[i+1] - 'a'];
+				if('a' <= tmp[i] && tmp[i] <= 'z') ++table[tmp[i] - 'a' ][tmp[i+1] - 'a'];
+				else if('A' <= tmp[i] && tmp[i] <= 'Z') ++table[tmp[i] - 'A'+26][tmp[i+1] - 'a'];
 			}
 		} 
 		
@@ -43,8 +44,14 @@ int main() {
 		tmp = *it;
 		flg = true;
 		for( int i = 0 ; i < tmp.size()-1 ; ++i ){
-			if( table[tmp[i] - 'a'][tmp[i+1] - 'a'] < 2 ){
-				flg = false;
+			if( ( 'a' <= tmp[i] && tmp[i] <= 'z') && 
+				( table[tmp[i] - 'a'][tmp[i+1] - 'a'] < 2 ) ){
+					flg = false;
+				break;
+			}
+			else if(( 'A' <= tmp[i] && tmp[i] <= 'Z') && 
+					( table[tmp[i] - 'A'+26][tmp[i+1] - 'a'] < 2 ) ){
+					flg = false;
 				break;
 			}
 			
@@ -52,7 +59,8 @@ int main() {
 		
 		if ( flg ) {
 			for( int i = 0 ; i < tmp.size()-1 ; ++i ){
-				--table[tmp[i] - 'a'][tmp[i+1] - 'a'];
+				if('a' <= tmp[i] && tmp[i] <= 'z') --table[tmp[i] - 'a' ][tmp[i+1] - 'a'];
+				else if('A' <= tmp[i] && tmp[i] <= 'Z') --table[tmp[i] - 'A'+26][tmp[i+1] - 'a'];
 			}
 			++it;
 			mylist.remove(tmp);
@@ -78,8 +86,9 @@ void log() {
 		printf("%4c",'a'+i);
 		putchar('\n');
 		
-	for( int i = 0 ; i < 26 ; ++i ){
-		printf("%4c",'a'+i);
+	for( int i = 0 ; i < 52 ; ++i ){
+		if(i < 26)printf("%4c",'a'+i);
+		else printf("%4c",'A'+i-26);
 		
 		for( int j = 0 ; j < 26 ; ++j )
 			printf("%4d",table[i][j]);
