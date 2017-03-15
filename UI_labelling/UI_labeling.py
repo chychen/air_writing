@@ -1,5 +1,6 @@
 """kivy
 """
+import json
 from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.widget import Widget
@@ -17,6 +18,34 @@ class Cursor(Widget):
     """
     pass
 
+class DrawingBoard(FloatLayout):
+    """yeah
+    """
+    # trajectory
+    points = ListProperty([])
+    selectedPoints = ListProperty([])
+    alpha = NumericProperty(0.5)
+
+    def __init__(self, **kwargs):
+        super(DrawingBoard, self).__init__(**kwargs)
+        # trajectory
+        collectedDataDir = 'testing_data/'
+        dataName = '2017-03-15 13:04:16.293349'
+        fileName = collectedDataDir + dataName + ".json"
+        f = open(fileName, 'r')
+        jsonData = json.load(f)
+        f.close()
+        
+        for i, v in enumerate(jsonData['trajectory_list']):
+            jsonData['trajectory_list'][i] = v * 800
+        self.points = jsonData['trajectory_list']
+        defaultStartIdx = int(len(self.points)/2*1/4)
+        defaultEndIdx = int(len(self.points)/2*3/4+1)
+        self.selectedPoints = self.points[defaultStartIdx*2:defaultEndIdx*2]
+
+    def updateselectedPoints(self, startIdx, endIdx):
+        self.selectedPoints = self.points[startIdx: endIdx]
+
 
 class SliderEngine(Widget):
     """yeah
@@ -27,23 +56,7 @@ class SliderEngine(Widget):
     offset_x = NumericProperty(50.0)
     offset_y = NumericProperty(50.0)
     # trajectory
-    points = ListProperty([])
-    selectedPoints = ListProperty([])
-    alpha = NumericProperty(0.5)
-    joint = OptionProperty('none', options=('round', 'miter', 'bevel', 'none'))
-    cap = OptionProperty('none', options=('round', 'square', 'none'))
-    linewidth = NumericProperty(5.0)
-    close = BooleanProperty(False)
-
-    def __init__(self, **kwargs):
-        super(SliderEngine, self).__init__(**kwargs)
-        # trajectory
-        self.points = [600, 200, 200, 200, 100, 400, 300, 500,
-                       500, 500, 300, 300, 500, 300,
-                       500, 400, 600, 400, 700, 500]
-        defaultStartIdx = int(len(self.points)/2*1/4)
-        defaultEndIdx = int(len(self.points)/2*3/4+1)
-        self.selectedPoints = self.points[defaultStartIdx*2:defaultEndIdx*2]
+    board = ObjectProperty(None)
 
     def on_touch_move(self, touch):
         super(SliderEngine, self).on_touch_down(touch)
@@ -55,13 +68,13 @@ class SliderEngine(Widget):
 
     def getCursorMatchedPoint_idx(self, cursor):
         normalizedX = (cursor.center_x - self.offset_x) / (self.width - self.offset_x * 2)
-        pointsLength = len(self.points) / 2
+        pointsLength = len(self.board.points) / 2
         return int(normalizedX * pointsLength)
 
     def updateSelectedPoints(self):
         startPtIdx = self.getCursorMatchedPoint_idx(self.cursorStart)
         endPtIdx = self.getCursorMatchedPoint_idx(self.cursorEnd) + 1
-        self.selectedPoints = self.points[startPtIdx*2:endPtIdx*2]
+        self.board.updateselectedPoints(startPtIdx*2, endPtIdx*2)
     
     def touchAction(self, touch):
         dist2CursorStart = abs(touch.x - self.cursorStart.x)

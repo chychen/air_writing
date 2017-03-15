@@ -10,9 +10,26 @@
             pos: self.pos
             size: self.size          
 
+<DrawingBoard>:
+    canvas:
+        Color:
+            rgba: .4, .4, 1, root.alpha
+        Point:
+            points: self.points
+            source: 'particle.png'
+            pointsize: 5
+        Color:
+            rgba: 1, .4, 1, root.alpha
+        Point:
+            points: self.selectedPoints
+            source: 'particle.png'
+            pointsize: 5
+    
+
 <SliderEngine>:
     cursorStart: corsor_start
     cursorEnd: corsor_end
+    board: draw_board
     rgba: (0, 0, 1, 1)
     rectangle_h: 5
 
@@ -22,22 +39,11 @@
         Rectangle:
             pos: self.offset_x, self.offset_y
             size: self.width - 2*self.offset_x, self.rectangle_h
-        Color:
-            rgba: .4, .4, 1, root.alpha
-        SmoothLine:
-            points: self.points
-            joint: self.joint
-            cap: self.cap
-            width: self.linewidth
-            close: self.close
-        Color:
-            rgba: 1, .4, 1, root.alpha
-        SmoothLine:
-            points: self.selectedPoints
-            joint: self.joint
-            cap: self.cap
-            width: self.linewidth
-            close: self.close
+
+    DrawingBoard:
+        id: draw_board
+        size_hint: (1, .7)
+        pos_hint: {'x':0, 'y':.3}
 
     Cursor:
         id: corsor_start
