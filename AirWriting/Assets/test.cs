@@ -28,36 +28,43 @@ public class test : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
-
+		//key for start record
 		if (Input.GetKey ("up")) {
 			flg = 1;
 
 		}
 
+		//key for stop record
 		if (Input.GetKey ("down")) {
 			flg = 0;
 		}
 
 
-		Frame Lframe = controller.Frame (); // get frame for leap coordinate
+		Frame Lframe = controller.Frame ();      // get frame for leap coordinate
 		Frame frame = leapProvider.CurrentFrame; // get frame for unity coordinate
+
+		// if there is hand and "up" is pressed, then start to record
 		if (frame.Hands.Count > 0 && flg == 1) {
-			List<Hand> Lhands = Lframe.Hands;
-			List<Hand> hands = frame.Hands;
-			Hand LFHand = Lhands [0];
-			Hand firstHand = hands [0];
+			
+			List<Hand> Lhands = Lframe.Hands; 
+			List<Hand> hands = frame.Hands;   
+
+			Hand LFHand = Lhands [0];    // fitst hand for leap motion
+			Hand firstHand = hands [0];  // first hand for unity 
 
 
-			List<Finger> Lfingers = LFHand.Fingers;
-			List<Finger> fingers = firstHand.Fingers;
+			List<Finger> Lfingers = LFHand.Fingers;   // finger for leap motion
+			List<Finger> fingers = firstHand.Fingers; // finger for unity
 
 			// fingers[1] is index
+			// locus is the position in the unity
 			Vector locus      = fingers [1].TipPosition;
 
+			// to put prefab in the scene
 			Instantiate (prefab, locus.ToVector3(), Quaternion.identity);
 
 
-
+			// finger for leap motion
 			Finger index = Lfingers [1];
 			Vector direction  = index.Direction;
 			Vector stabilized = index.StabilizedTipPosition;
@@ -73,13 +80,16 @@ public class test : MonoBehaviour {
 			print ("velocity is " + velocity);
 			print ("speed is " + speed);
 
-
+			// start to write data
 			string path = @"C:\Users\ec131b\Desktop\Datas\onDesk\z\06";
+
+			// check if file is existed
 			if (!File.Exists (path)) {
 				string tmp = ">>\n";
 				File.WriteAllText (path,tmp, Encoding.UTF8);
 			}
-		
+
+			// write data in the file end
 			string qq = locus + "\n";
 			File.AppendAllText (path,qq,Encoding.UTF8);
 
