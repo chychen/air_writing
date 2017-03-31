@@ -9,6 +9,9 @@ __pycache__/
 # Distribution / packaging
 .Python
 data_collection/data/
+preprocessing/data/
+preprocessing/results/
+UI_labelling/testing_data/
 env/
 build/
 develop-eggs/
