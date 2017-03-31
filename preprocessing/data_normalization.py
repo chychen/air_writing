@@ -41,27 +41,25 @@ def NormalizedAlphabet(filename, charAlignmentDict):
 
     # Create a regular PCA and fit 3-D to 2-D
     pca = PCA(n_components=2)
-    pca_data = pca.fit_transform(posList)
+    pcaData = pca.fit_transform(posList)
 
     # normalize to 0-1
     # = (pca_data - pca_data_amin) / pca_data_value_range * 1.0
-    pca_data_amax = np.amax(pca_data, axis=0)
-    pca_data_amin = np.amin(pca_data, axis=0)
-    pca_data_value_range = pca_data_amax - pca_data_amin
+    pcaData_AMax = np.amax(pcaData, axis=0)
+    pcaData_AMin = np.amin(pcaData, axis=0)
+    pca_data_value_range = pcaData_AMax - pcaData_AMin
 
     charAlignmentType = charAlignmentDict['char'][wordName]
     alignmentTypeDict = charAlignmentDict['type'][charAlignmentType]
-    pca_data_normalized = np.zeros(pca_data.shape)
-    pca_data_normalized[:, 0] = (pca_data[:, 0] - pca_data_amin[0]) / \
+    normalizedPcaData = np.zeros(pcaData.shape)
+    normalizedPcaData[:, 0] = (pcaData[:, 0] - pcaData_AMin[0]) / \
         pca_data_value_range[0] * 1.0
-    # alignmentTypeDict['range'] + alignmentTypeDict['min'] / 2
-    pca_data_normalized[:, 1] = (pca_data[:, 1] - pca_data_amin[1]) / \
+    normalizedPcaData[:, 1] = (pcaData[:, 1] - pcaData_AMin[1]) / \
         pca_data_value_range[1] * 1.0
-    # alignmentTypeDict['range'] + alignmentTypeDict['min']
 
     # transpose direction
-    x = pca_data_normalized[:, 0]
-    y = pca_data_normalized[:, 1]
+    x = normalizedPcaData[:, 0]
+    y = normalizedPcaData[:, 1]
     f = x + y - 1
     for i, v in enumerate(f):
         a = 1
@@ -73,28 +71,35 @@ def NormalizedAlphabet(filename, charAlignmentDict):
         else:
             x[i] = x[i] - dist
             y[i] = y[i] - dist
-    pca_data_normalized[:, 0] = x
-    pca_data_normalized[:, 1] = y
+    normalizedPcaData[:, 0] = x
+    normalizedPcaData[:, 1] = y
 
     # align to correct alphabet position according to 'charAlignmentDict'
-    pca_data_normalized[:, 0] = pca_data_normalized[:,
-                                                    0] * alignmentTypeDict['yrange']
-    pca_data_normalized[:, 1] = pca_data_normalized[:, 1] * \
+    normalizedPcaData[:, 0] = normalizedPcaData[:,
+                                                0] * alignmentTypeDict['yrange']
+    normalizedPcaData[:, 1] = normalizedPcaData[:, 1] * \
         alignmentTypeDict['yrange'] + alignmentTypeDict['ymin']
 
     # centerize x-axis
-    ax_max = np.amax(pca_data_normalized[:, 0], axis=0)
-    ax_min = np.amin(pca_data_normalized[:, 0], axis=0)
+    ax_max = np.amax(normalizedPcaData[:, 0], axis=0)
+    ax_min = np.amin(normalizedPcaData[:, 0], axis=0)
     ax_range = ax_max - ax_min
-    pca_data_normalized[:, 0] = pca_data_normalized[:, 0] + 0.5 - ax_range / 2
+    normalizedPcaData[:, 0] = normalizedPcaData[:, 0] + 0.5 - ax_range / 2
 
     if FLAG_IF_VISULIZZATION:
-        Visulization2D(pca_data_normalized)
-        Visulization3Dto2D(posList, pca_data_normalized)
+        Visulization2D(normalizedPcaData)
+        Visulization3Dto2D(posList, normalizedPcaData)
         plt.show(block=False)
         FLAG_IF_VISULIZZATION = False
 
-    result = pca_data_normalized.tolist()
+    newPos = normalizedPcaData.tolist()
+    for i, v in enumerate(newPos):
+        temp_dict = {}
+        temp_dict['position'] = v
+        temp_dict['time'] = raw_data['data'][i]['time']
+        temp_dict['direction'] = raw_data['data'][i]['direction']
+        temp_dict['velocity'] = raw_data['data'][i]['velocity']
+        result.append(temp_dict)
 
     return wordName, result
 
@@ -160,9 +165,9 @@ def main():
             file_name = 'User_' + str(raw_data['id']) + '.json'
             filePath = os.path.join(RESULT_DIR_PATH, file_name)
             with codecs.open(filePath, 'w', 'utf-8') as out:
-                json.dump(final_dict, out, encoding="utf-8", ensure_ascii=False)
+                json.dump(final_dict, out, encoding="utf-8",
+                          ensure_ascii=False)
                 print ("data saved into path:", filePath)
-        
 
     raw_input("Hit Enter To Close")
     plt.close('all')
