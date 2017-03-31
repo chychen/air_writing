@@ -59,11 +59,20 @@ def synthesize_one_word(voc, interval):
     """
     parameters: 
         voc: string, the word as synthesize target
+        interval: the width between two alphabets
     """
+    global FLAG_IF_VISULIZZATION
+
+    result = []
     with codecs.open(NORMALIZED_ALPHABET_FILE_PATH, 'r', 'utf-8-sig') as f:
         alphabet_dict = json.load(f)
     for i, v in enumerate(voc):
         print (v)
+    
+    if FLAG_IF_VISULIZZATION:
+        visulization_2D(result)
+
+    print ("successfully synthesize the word:: ", voc)
 
 
 def visulization_2D(new_pos):
@@ -80,7 +89,7 @@ def main():
     voc_dict_path = os.path.join(DICTIONARY_DIR_PATH, 'testing_voc.json')
     with codecs.open(voc_dict_path, 'r', 'utf-8-sig') as f:
         voc_dict = json.load(f)
-    for _, v in enumerate(voc_dict):
+    for _, v in enumerate(voc_dict['data']):
         synthesize_one_word(v, INTERVAL_WIDTH)
 
 
