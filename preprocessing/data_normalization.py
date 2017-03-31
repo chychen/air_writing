@@ -19,11 +19,12 @@ import numpy as np
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 DATA_DIR_PATH = os.path.join(DIR_PATH, 'data')
-RESULT_DIR_PATH = os.path.join(DIR_PATH, 'results')
+NORMALIZED_DIR_PATH = os.path.join(DIR_PATH, 'normalized_data')
+DICTIONARY_DIR_PATH = os.path.join(DIR_PATH, 'dictionary')
 FLAG_IF_VISULIZZATION = True
 
 
-def NormalizedAlphabet(filename, charAlignmentDict):
+def normalize_alphabet(filename, char_alignment_dict):
     """ Read alphabet one by one to normalized, 2d-pca, and aligned with proper position(charAlignmentDict).
     return two variable as below:
     wordName: name of the alphabet
@@ -31,35 +32,35 @@ def NormalizedAlphabet(filename, charAlignmentDict):
     """
     global FLAG_IF_VISULIZZATION
     result = []
-    posList = []
+    pos_list = []
     with codecs.open(filename, 'r', 'utf-8-sig') as f:
         raw_data = json.load(f)
-    wordName = raw_data['word']
+    word_name = raw_data['word']
     for i in range(len(raw_data['data'])):
-        posList.append(raw_data['data'][i]['position'])
-    posList = np.array(posList)
+        pos_list.append(raw_data['data'][i]['position'])
+    pos_list = np.array(pos_list)
 
     # Create a regular PCA and fit 3-D to 2-D
     pca = PCA(n_components=2)
-    pcaData = pca.fit_transform(posList)
+    pcaData = pca.fit_transform(pos_list)
 
     # normalize to 0-1
     # = (pca_data - pca_data_amin) / pca_data_value_range * 1.0
-    pcaData_AMax = np.amax(pcaData, axis=0)
-    pcaData_AMin = np.amin(pcaData, axis=0)
-    pca_data_value_range = pcaData_AMax - pcaData_AMin
+    pca_data_Amax = np.amax(pcaData, axis=0)
+    pca_data_Amin = np.amin(pcaData, axis=0)
+    pca_data_value_range = pca_data_Amax - pca_data_Amin
 
-    charAlignmentType = charAlignmentDict['char'][wordName]
-    alignmentTypeDict = charAlignmentDict['type'][charAlignmentType]
-    normalizedPcaData = np.zeros(pcaData.shape)
-    normalizedPcaData[:, 0] = (pcaData[:, 0] - pcaData_AMin[0]) / \
+    char_alignment_type = char_alignment_dict['char'][word_name]
+    alignment_type_dict = char_alignment_dict['type'][char_alignment_type]
+    normalized_pca_data = np.zeros(pcaData.shape)
+    normalized_pca_data[:, 0] = (pcaData[:, 0] - pca_data_Amin[0]) / \
         pca_data_value_range[0] * 1.0
-    normalizedPcaData[:, 1] = (pcaData[:, 1] - pcaData_AMin[1]) / \
+    normalized_pca_data[:, 1] = (pcaData[:, 1] - pca_data_Amin[1]) / \
         pca_data_value_range[1] * 1.0
 
     # transpose direction
-    x = normalizedPcaData[:, 0]
-    y = normalizedPcaData[:, 1]
+    x = normalized_pca_data[:, 0]
+    y = normalized_pca_data[:, 1]
     f = x + y - 1
     for i, v in enumerate(f):
         a = 1
@@ -71,28 +72,28 @@ def NormalizedAlphabet(filename, charAlignmentDict):
         else:
             x[i] = x[i] - dist
             y[i] = y[i] - dist
-    normalizedPcaData[:, 0] = x
-    normalizedPcaData[:, 1] = y
+    normalized_pca_data[:, 0] = x
+    normalized_pca_data[:, 1] = y
 
     # align to correct alphabet position according to 'charAlignmentDict'
-    normalizedPcaData[:, 0] = normalizedPcaData[:,
-                                                0] * alignmentTypeDict['yrange']
-    normalizedPcaData[:, 1] = normalizedPcaData[:, 1] * \
-        alignmentTypeDict['yrange'] + alignmentTypeDict['ymin']
+    normalized_pca_data[:, 0] = normalized_pca_data[:,
+                                                0] * alignment_type_dict['yrange']
+    normalized_pca_data[:, 1] = normalized_pca_data[:, 1] * \
+        alignment_type_dict['yrange'] + alignment_type_dict['ymin']
 
     # centerize x-axis
-    ax_max = np.amax(normalizedPcaData[:, 0], axis=0)
-    ax_min = np.amin(normalizedPcaData[:, 0], axis=0)
+    ax_max = np.amax(normalized_pca_data[:, 0], axis=0)
+    ax_min = np.amin(normalized_pca_data[:, 0], axis=0)
     ax_range = ax_max - ax_min
-    normalizedPcaData[:, 0] = normalizedPcaData[:, 0] + 0.5 - ax_range / 2
+    normalized_pca_data[:, 0] = normalized_pca_data[:, 0] + 0.5 - ax_range / 2
 
     if FLAG_IF_VISULIZZATION:
-        Visulization2D(normalizedPcaData)
-        Visulization3Dto2D(posList, normalizedPcaData)
+        visulization_2D(normalized_pca_data)
+        visulization_3Dto2D(pos_list, normalized_pca_data)
         plt.show(block=False)
         FLAG_IF_VISULIZZATION = False
 
-    newPos = normalizedPcaData.tolist()
+    newPos = normalized_pca_data.tolist()
     for i, v in enumerate(newPos):
         temp_dict = {}
         temp_dict['position'] = v
@@ -101,10 +102,10 @@ def NormalizedAlphabet(filename, charAlignmentDict):
         temp_dict['velocity'] = raw_data['data'][i]['velocity']
         result.append(temp_dict)
 
-    return wordName, result
+    return word_name, result
 
 
-def Visulization3Dto2D(ori_pos, new_pos):
+def visulization_3Dto2D(ori_pos, new_pos):
     """ show original data vs new proccessed data
     """
     fig = plt.figure(2)
@@ -123,7 +124,7 @@ def Visulization3Dto2D(ori_pos, new_pos):
     ax.set_zlabel('Z Label')
 
 
-def Visulization2D(new_pos):
+def visulization_2D(new_pos):
     """ show proccessed data in 2d
     """
     plt.figure(1)
@@ -137,8 +138,8 @@ def main():
     final_dict = {}
 
     # normalize to 0-1 according to 'charAlignmentDict'
-    alphabetDict = os.path.join(DIR_PATH, 'char_alignment_dict.json')
-    with codecs.open(alphabetDict, 'r', 'utf-8-sig') as f:
+    alphabet_dict = os.path.join(DICTIONARY_DIR_PATH, 'char_alignment_dict.json')
+    with codecs.open(alphabet_dict, 'r', 'utf-8-sig') as f:
         charAlignmentDict = json.load(f)
 
     for root, users, _ in os.walk(DATA_DIR_PATH):
@@ -156,18 +157,18 @@ def main():
             for _, _, files in os.walk(usersPath):
                 for f in files:
                     temp_list = []
-                    fileName = os.path.join(usersPath, f)
-                    wordName, temp_list = NormalizedAlphabet(
-                        fileName, charAlignmentDict)
-                    final_dict[wordName] = temp_list
+                    filename = os.path.join(usersPath, f)
+                    wordname, temp_list = normalize_alphabet(
+                        filename, charAlignmentDict)
+                    final_dict[wordname] = temp_list
 
             # save result as json format
             file_name = 'User_' + str(raw_data['id']) + '.json'
-            filePath = os.path.join(RESULT_DIR_PATH, file_name)
-            with codecs.open(filePath, 'w', 'utf-8') as out:
+            filepath = os.path.join(NORMALIZED_DIR_PATH, file_name)
+            with codecs.open(filepath, 'w', 'utf-8') as out:
                 json.dump(final_dict, out, encoding="utf-8",
                           ensure_ascii=False)
-                print ("data saved into path:", filePath)
+                print ("data saved into path:", filepath)
 
     raw_input("Hit Enter To Close")
     plt.close('all')
@@ -176,6 +177,6 @@ def main():
 if __name__ == '__main__':
     if not os.path.exists(DATA_DIR_PATH):
         os.makedirs(DATA_DIR_PATH)
-    if not os.path.exists(RESULT_DIR_PATH):
-        os.makedirs(RESULT_DIR_PATH)
+    if not os.path.exists(NORMALIZED_DIR_PATH):
+        os.makedirs(NORMALIZED_DIR_PATH)
     main()
