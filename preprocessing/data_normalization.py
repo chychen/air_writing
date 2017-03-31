@@ -1,4 +1,4 @@
-""" pca.py
+""" data_normalization.py
 read all alphabet one by one collected from unity and different users,
 then generate into one formatted, normalized, 2d-pca json file for each user.
 Also, visualize the result in 2d/ 3d space to compare original data and formatted data

@@ -1,3 +1,5 @@
+""" data_synthesization
+"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -9,10 +11,7 @@ from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import numpy as np
 
-"""
-"""
-
-# TODO: read normalized data for each char
+# TODO: read normalized data for each char from one author
 with codecs.open('1/_a.json', 'r', 'utf-8-sig') as f:
     normalized_data = json.load(f)
 
