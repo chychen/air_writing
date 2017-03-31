@@ -26,9 +26,12 @@ FLAG_IF_VISULIZZATION = True
 
 def normalize_alphabet(filename, char_alignment_dict):
     """ Read alphabet one by one to normalized, 2d-pca, and aligned with proper position(charAlignmentDict).
-    return two variable as below:
-    wordName: name of the alphabet
-    result: list of position normalized, 2d-pca, and aligned
+    parameters:
+        filename: file path as the target alphabet to normalize
+        char_alignment_dict: one dict records proper position of all alphabet (see 'char_alignment_dict.json')
+    return:
+        wordName: name of the alphabet
+        result: list of position normalized, 2d-pca, and aligned
     """
     global FLAG_IF_VISULIZZATION
     result = []
@@ -77,7 +80,7 @@ def normalize_alphabet(filename, char_alignment_dict):
 
     # align to correct alphabet position according to 'charAlignmentDict'
     normalized_pca_data[:, 0] = normalized_pca_data[:,
-                                                0] * alignment_type_dict['yrange']
+                                                    0] * alignment_type_dict['yrange']
     normalized_pca_data[:, 1] = normalized_pca_data[:, 1] * \
         alignment_type_dict['yrange'] + alignment_type_dict['ymin']
 
@@ -138,9 +141,10 @@ def main():
     final_dict = {}
 
     # normalize to 0-1 according to 'charAlignmentDict'
-    alphabet_dict = os.path.join(DICTIONARY_DIR_PATH, 'char_alignment_dict.json')
+    alphabet_dict = os.path.join(
+        DICTIONARY_DIR_PATH, 'char_alignment_dict.json')
     with codecs.open(alphabet_dict, 'r', 'utf-8-sig') as f:
-        charAlignmentDict = json.load(f)
+        char_alignment_dict = json.load(f)
 
     for root, users, _ in os.walk(DATA_DIR_PATH):
         for f in users:
@@ -159,7 +163,7 @@ def main():
                     temp_list = []
                     filename = os.path.join(usersPath, f)
                     wordname, temp_list = normalize_alphabet(
-                        filename, charAlignmentDict)
+                        filename, char_alignment_dict)
                     final_dict[wordname] = temp_list
 
             # save result as json format
