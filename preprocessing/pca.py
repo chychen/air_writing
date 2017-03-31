@@ -1,3 +1,9 @@
+""" pca.py
+read all alphabet one by one collected from unity and different users,
+then generate into one formatted, normalized, 2d-pca json file for each user.
+Also, visualize the result in 2d/ 3d space to compare original data and formatted data
+"""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -11,20 +17,6 @@ from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import numpy as np
 
-
-"""
-output an json file with pca, normalized, translated collected from unity
-(all data collected from same author)
-Also, visualize the result in 3d space to compare original data and formatted data
-output json format:
-    "name":
-    "data":
-    "speed":
-    "vector":
-    "time":
-
-"""
-
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 DATA_DIR_PATH = os.path.join(DIR_PATH, 'data')
 RESULT_DIR_PATH = os.path.join(DIR_PATH, 'results')
@@ -32,7 +24,10 @@ FLAG_IF_VISULIZZATION = True
 
 
 def NormalizedAlphabet(filename, charAlignmentDict):
-    """
+    """ Read alphabet one by one to normalized, 2d-pca, and aligned with proper position(charAlignmentDict).
+    return two variable as below:
+    wordName: name of the alphabet
+    result: list of position normalized, 2d-pca, and aligned
     """
     global FLAG_IF_VISULIZZATION
     result = []
@@ -64,15 +59,15 @@ def NormalizedAlphabet(filename, charAlignmentDict):
         pca_data_value_range[1] * 1.0
     # alignmentTypeDict['range'] + alignmentTypeDict['min']
 
-    # TODO: transpose direction
+    # transpose direction
     x = pca_data_normalized[:, 0]
     y = pca_data_normalized[:, 1]
     f = x + y - 1
-    for i in range(len(f)):
+    for i, v in enumerate(f):
         a = 1
         b = 1
         dist = math.fabs(x[i] + y[i] - 1) / (a**2 + b**2) * 2
-        if f[i] < 0:
+        if v < 0:
             x[i] = x[i] + dist
             y[i] = y[i] + dist
         else:
@@ -86,7 +81,8 @@ def NormalizedAlphabet(filename, charAlignmentDict):
                                                     0] * alignmentTypeDict['yrange']
     pca_data_normalized[:, 1] = pca_data_normalized[:, 1] * \
         alignmentTypeDict['yrange'] + alignmentTypeDict['ymin']
-    # centerize x
+
+    # centerize x-axis
     ax_max = np.amax(pca_data_normalized[:, 0], axis=0)
     ax_min = np.amin(pca_data_normalized[:, 0], axis=0)
     ax_range = ax_max - ax_min
@@ -104,7 +100,7 @@ def NormalizedAlphabet(filename, charAlignmentDict):
 
 
 def Visulization3Dto2D(ori_pos, new_pos):
-    """
+    """ show original data vs new proccessed data
     """
     fig = plt.figure(2)
     ax = fig.add_subplot(111, projection='3d')
@@ -123,7 +119,7 @@ def Visulization3Dto2D(ori_pos, new_pos):
 
 
 def Visulization2D(new_pos):
-    """
+    """ show proccessed data in 2d
     """
     plt.figure(1)
     plt.plot(new_pos[:, 0], new_pos[:, 1])
@@ -131,9 +127,8 @@ def Visulization2D(new_pos):
 
 
 def main():
+    """ read alphebet one by one then normalize them and save as json in one file for each author
     """
-    """
-
     final_dict = {}
 
     # normalize to 0-1 according to 'charAlignmentDict'
