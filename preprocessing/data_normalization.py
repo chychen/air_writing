@@ -36,6 +36,7 @@ def normalize_alphabet(filename, char_alignment_dict):
     global FLAG_IF_VISULIZZATION
     result = []
     pos_list = []
+    # filename = "preprocessing/data/1/a.json"
     with codecs.open(filename, 'r', 'utf-8-sig') as f:
         raw_data = json.load(f)
     word_name = raw_data['word']
@@ -45,23 +46,28 @@ def normalize_alphabet(filename, char_alignment_dict):
 
     # Create a regular PCA and fit 3-D to 2-D
     pca = PCA(n_components=2)
-    pcaData = pca.fit_transform(pos_list)
+    fit_pca = pca.fit(pos_list)
+    pca_data = fit_pca.transform(pos_list)
+    pca_conponents = fit_pca.components_
+    pca_plane_normal = np.cross(pca_conponents[0], pca_conponents[1])
+    # print (pca_conponents)
+    # print (pca_plane_normal)
 
     # normalize to 0-1
     # = (pca_data - pca_data_amin) / pca_data_value_range * 1.0
-    pca_data_Amax = np.amax(pcaData, axis=0)
-    pca_data_Amin = np.amin(pcaData, axis=0)
+    pca_data_Amax = np.amax(pca_data, axis=0)
+    pca_data_Amin = np.amin(pca_data, axis=0)
     pca_data_value_range = pca_data_Amax - pca_data_Amin
 
     char_alignment_type = char_alignment_dict['char'][word_name]
     alignment_type_dict = char_alignment_dict['type'][char_alignment_type]
-    normalized_pca_data = np.zeros(pcaData.shape)
-    normalized_pca_data[:, 0] = (pcaData[:, 0] - pca_data_Amin[0]) / \
+    normalized_pca_data = np.zeros(pca_data.shape)
+    normalized_pca_data[:, 0] = (pca_data[:, 0] - pca_data_Amin[0]) / \
         pca_data_value_range[0] * 1.0
-    normalized_pca_data[:, 1] = (pcaData[:, 1] - pca_data_Amin[1]) / \
+    normalized_pca_data[:, 1] = (pca_data[:, 1] - pca_data_Amin[1]) / \
         pca_data_value_range[1] * 1.0
 
-    # transpose direction
+    # transpose direction by mirroring x+y-1=0
     x = normalized_pca_data[:, 0]
     y = normalized_pca_data[:, 1]
     f = x + y - 1
@@ -78,6 +84,12 @@ def normalize_alphabet(filename, char_alignment_dict):
     normalized_pca_data[:, 0] = x
     normalized_pca_data[:, 1] = y
 
+    # flip l2r or u2d according to pca_conponents' direction
+    if pca_conponents[0][1] > 0:
+        normalized_pca_data[:, 1] = 1 - normalized_pca_data[:, 1]
+    if pca_conponents[1][2] > 0:
+        normalized_pca_data[:, 0] = 1 - normalized_pca_data[:, 0]
+
     # align to correct alphabet position according to 'charAlignmentDict'
     normalized_pca_data[:, 0] = normalized_pca_data[:,
                                                     0] * alignment_type_dict['yrange']
@@ -91,10 +103,13 @@ def normalize_alphabet(filename, char_alignment_dict):
     normalized_pca_data[:, 0] = normalized_pca_data[:, 0] + 0.5 - ax_range / 2
 
     if FLAG_IF_VISULIZZATION:
+        visulization_ori_3D(pos_list)
         visulization_2D(normalized_pca_data)
         visulization_3Dto2D(pos_list, normalized_pca_data)
         plt.show(block=False)
         FLAG_IF_VISULIZZATION = False
+        # plt.show()
+        # exit('aa')
 
     newPos = normalized_pca_data.tolist()
     for i, v in enumerate(newPos):
@@ -117,11 +132,27 @@ def visulization_3Dto2D(ori_pos, new_pos):
     ax.scatter(ori_pos[:, 0], ori_pos[:, 1], ori_pos[:, 2], c='b', marker='o')
     ax.scatter(new_pos[:, 0], new_pos[:, 1], 0, c='r', marker='o')
     # line
+    plt.plot(ori_pos[:, 0], ori_pos[:, 1], ori_pos[:, 2], c='g')
     plt.plot(new_pos[:, 0], new_pos[:, 1], c='g')
 
     ax.set_xlim([-1, 1])
     ax.set_ylim([-1, 1])
     ax.set_zlim([-1, 1])
+    ax.set_xlabel('X Label')
+    ax.set_ylabel('Y Label')
+    ax.set_zlabel('Z Label')
+
+
+def visulization_ori_3D(ori_pos):
+    """ show original data
+    """
+    fig = plt.figure(3)
+    ax = fig.add_subplot(111, projection='3d')
+    # scatter
+    ax.scatter(ori_pos[:, 0], ori_pos[:, 1], ori_pos[:, 2], c='b', marker='o')
+    # line
+    plt.plot(ori_pos[:, 0], ori_pos[:, 1], ori_pos[:, 2], c='g')
+
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')
     ax.set_zlabel('Z Label')

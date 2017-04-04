@@ -7,6 +7,7 @@ from __future__ import print_function
 import json
 import codecs
 import os.path
+import math
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
@@ -52,7 +53,12 @@ INTERVAL_WIDTH = 0.5
 # plt.show()
 
 
-
+def velocity_to_speed(velocity):
+    """
+    velocity: a list of three element
+    return: scalar of velocity
+    """
+    return math.sqrt(velocity[0]**2 + velocity[1]**2 + velocity[2]**2)
 
 
 def synthesize_one_word(voc, interval):
@@ -68,9 +74,23 @@ def synthesize_one_word(voc, interval):
         alphabet_dict = json.load(f)
     for i, v in enumerate(voc):
         print (v)
+        temp_list = []
+        plt.figure(1)
+        for idx, timestep_dict in enumerate(alphabet_dict[v]):
+            velocity = timestep_dict['velocity']
+            temp_list.append(timestep_dict['position'])
+            speed = velocity_to_speed(velocity)
+            print (speed)
+            if speed < 0.1:
+                plt.scatter(timestep_dict['position'][0], timestep_dict['position'][1], c='r', marker='o')
+        print("################")
+        temp_list = np.array(temp_list)
+        plt.plot(temp_list[:, 0], temp_list[:, 1])
+        plt.show()
     
-    if FLAG_IF_VISULIZZATION:
-        visulization_2D(result)
+    # if FLAG_IF_VISULIZZATION:
+    #     visulization_2D(result)
+    #     FLAG_IF_VISULIZZATION = False
 
     print ("successfully synthesize the word:: ", voc)
 
