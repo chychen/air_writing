@@ -15,42 +15,13 @@ import numpy as np
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 SYNTHESIZE_DATA_DIR_PATH = os.path.join(DIR_PATH, 'synthesized_data')
-NORMALIZED_ALPHABET_FILE_PATH = os.path.join(DIR_PATH, 'normalized_data/User_1.json')
+NORMALIZED_ALPHABET_FILE_PATH = os.path.join(
+    DIR_PATH, 'normalized_data/User_1.json')
 DICTIONARY_DIR_PATH = os.path.join(DIR_PATH, 'dictionary')
 FLAG_IF_VISULIZZATION = True
 
-INTERVAL_WIDTH = 0.5
+INTERVAL_WIDTH = 0.7
 # TODO: stddev for more natural interval
-
-
-
-# # TODO: read normalized data for each char from one author
-# with codecs.open('1/_a.json', 'r', 'utf-8-sig') as f:
-#     normalized_data = json.load(f)
-
-# exit('a')
-# # TODO: read target voc list
-
-# # TODO: link two char function with width and smooth control
-# speed_threshold = 0.1
-# stride = 1.0 + 0.5
-
-# # TODO: generate one word
-
-# # TODO: visualization
-
-# fig = plt.figure()
-# # scatter
-# # line
-# data1 = np.array(normalized_data['data'])
-# data2 = np.array(normalized_data['data'])
-# data2[:, 0] += stride
-# plt.scatter(data1[:, 0], data1[:, 1], c='r', marker='o')
-# plt.scatter(data2[:, 0], data2[:, 1], c='r', marker='o')
-# plt.plot(data1[:, 0], data1[:, 1], c='g')
-# plt.plot(data2[:, 0], data2[:, 1], c='g')
-
-# plt.show()
 
 
 def velocity_to_speed(velocity):
@@ -69,7 +40,8 @@ def synthesize_one_word(voc, interval):
     """
     global FLAG_IF_VISULIZZATION
 
-    result = []
+    result = np.ndarray([0, 2], buffer=None)
+    print (result)
     with codecs.open(NORMALIZED_ALPHABET_FILE_PATH, 'r', 'utf-8-sig') as f:
         alphabet_dict = json.load(f)
     for i, v in enumerate(voc):
@@ -78,20 +50,30 @@ def synthesize_one_word(voc, interval):
         plt.figure(1)
         for idx, timestep_dict in enumerate(alphabet_dict[v]):
             velocity = timestep_dict['velocity']
-            temp_list.append(timestep_dict['position'])
+            timestep_pos = timestep_dict['position']
+            temp_list.append(
+                [timestep_pos[0] + i * INTERVAL_WIDTH, timestep_pos[1]])
             speed = velocity_to_speed(velocity)
-            print (speed)
-            if speed < 0.1:
-                plt.scatter(timestep_dict['position'][0], timestep_dict['position'][1], c='r', marker='o')
+            if speed <= 0.1:
+                # visualiza noise by scatter slow speed points
+                plt.scatter(timestep_pos[0] + i * INTERVAL_WIDTH,
+                            timestep_dict['position'][1], c='r', marker='o')
         print("################")
         temp_list = np.array(temp_list)
-        plt.plot(temp_list[:, 0], temp_list[:, 1])
-        plt.show()
-    
+        result = np.concatenate((result, temp_list), axis=0)
+    plt.plot(result[:, 0], result[:, 1])
+    plt.show()
+
+    # TODO: add sample points in connectionist
+
+    # TODO: add noise to each alphabets in one word
+
+    # TODO: FLAG_IF_VISULIZZATION
     # if FLAG_IF_VISULIZZATION:
     #     visulization_2D(result)
     #     FLAG_IF_VISULIZZATION = False
 
+    # TODO: Save to json file
     print ("successfully synthesize the word:: ", voc)
 
 
@@ -109,6 +91,8 @@ def main():
     voc_dict_path = os.path.join(DICTIONARY_DIR_PATH, 'testing_voc.json')
     with codecs.open(voc_dict_path, 'r', 'utf-8-sig') as f:
         voc_dict = json.load(f)
+
+    # save to file as json word by word
     for _, v in enumerate(voc_dict['data']):
         synthesize_one_word(v, INTERVAL_WIDTH)
 
