@@ -11,6 +11,8 @@ __pycache__/
 data_collection/data/
 preprocessing/data/
 preprocessing/results/
+preprocessing/synthesized_data/
+preprocessing/voc/
 UI_labelling/testing_data/
 env/
 build/

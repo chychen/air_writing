@@ -21,6 +21,7 @@ DICTIONARY_DIR_PATH = os.path.join(DIR_PATH, 'dictionary')
 FLAG_IF_VISULIZZATION = True
 
 INTERVAL_WIDTH = 0.7
+SPEED_THRESHOLD = 0.1
 # TODO: stddev for more natural interval
 
 
@@ -54,7 +55,7 @@ def synthesize_one_word(voc, interval):
             temp_list.append(
                 [timestep_pos[0] + i * INTERVAL_WIDTH, timestep_pos[1]])
             speed = velocity_to_speed(velocity)
-            if speed <= 0.1:
+            if speed <= SPEED_THRESHOLD:
                 # visualiza noise by scatter slow speed points
                 plt.scatter(timestep_pos[0] + i * INTERVAL_WIDTH,
                             timestep_dict['position'][1], c='r', marker='o')
