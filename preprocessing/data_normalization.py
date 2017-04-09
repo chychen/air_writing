@@ -108,8 +108,6 @@ def normalize_alphabet(filename, char_alignment_dict):
         visulization_3Dto2D(pos_list, normalized_pca_data)
         plt.show(block=False)
         FLAG_IF_VISULIZZATION = False
-        # plt.show()
-        # exit('aa')
 
     newPos = normalized_pca_data.tolist()
     for i, v in enumerate(newPos):
