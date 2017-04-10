@@ -30,7 +30,7 @@ class DrawingBoard(FloatLayout):
         super(DrawingBoard, self).__init__(**kwargs)
         # trajectory
         collectedDataDir = 'testing_data/'
-        dataName = '2017-03-15 13:04:16.293349'
+        dataName = '2017-04-10 10:09:44.256212'
         fileName = collectedDataDir + dataName + ".json"
         f = open(fileName, 'r')
         jsonData = json.load(f)

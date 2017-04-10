@@ -6,23 +6,45 @@ import json
 import codecs
 import os.path
 import math
+import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
-import numpy as np
 
 import scipy.linalg
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-DATA_DIR_PATH = os.path.join(DIR_PATH, 'voc/rich')
+DATA_DIR_PATH = os.path.join(DIR_PATH, 'voc/xdex')
+NORMALIZED_DATA_DIR_PATH = os.path.join(DIR_PATH, 'normalized_voc')
 FLAG_IF_VISULIZZATION = True
 
 # TODO: get mean position of head and the mean height of all points
 HEAD = [-1.37, 1.64, -0.285]
 
 
-def visulization_ori_3D(fig_id, positions):
-    """ show original data
+def normalize(positions):
+    """
+    params: positions: 2-d numpy array
+    return: result: 2-d numpy array, normalize its height from 0 to 1, width starts from 0
+    """
+    result = np.empty(positions.shape, dtype=np.float32)
+    # x_amax = np.amax(positions[:, 0]) #unused
+    x_amin = np.amin(positions[:, 0])
+    y_amax = np.amax(positions[:, 1])
+    y_amin = np.amin(positions[:, 1])
+    y_range = y_amax - y_amin
+    scale = 1.0 / y_range
+    result[:, 0] = (positions[:, 0] - x_amin) * scale
+    result[:, 1] = (positions[:, 1] - y_amin) * scale
+
+    return result
+
+
+def visulization_3D(fig_id, positions):
+    """ 
+    params: fig_id: positive integer, canvas figure id
+    params: positions: 3d positions as numpy array
+    visulize 3d positions on specific figure
     """
     fig = plt.figure(fig_id)
     ax = fig.add_subplot(111, projection='3d')
@@ -40,18 +62,19 @@ def visulization_ori_3D(fig_id, positions):
 
 
 def visulization_2D(fig_id, new_pos):
-    """ show proccessed data in 2d
+    """ 
+    params: fig_id: positive integer, canvas figure id
+    params: positions: 3d positions as numpy array
+    visulize 2d positions on specific figure
     """
-
     plt.figure(fig_id)
     plt.plot(new_pos[:, 0], new_pos[:, 1])
-    # plt.axis([0, 1, 0, 1])
 
 
-def transformed_onto_ball_coordinates(positions):
+def transforme_onto_sphere_coordinates(positions):
     """
-    params: 3d positions as numpy array
-    return:
+    params: positions: 3d positions as numpy array
+    return: sphere_coordinates: 2-d numpy array as [theta, phi] in the sphere coordinates
     """
     relative_pos = positions - HEAD
 
@@ -60,9 +83,9 @@ def transformed_onto_ball_coordinates(positions):
     for i, v in enumerate(relative_pos):
         x = v[0]
         y = v[1]
-        z = v[2] 
+        z = v[2]
         # we always write as clockwise
-        if x < 0 and z < 0: # starting Quadrant
+        if x < 0 and z < 0:  # starting Quadrant
             theta[i] = math.atan(-z / x)
         elif x < 0 and z > 0:
             theta[i] = math.atan(-z / x)
@@ -76,14 +99,16 @@ def transformed_onto_ball_coordinates(positions):
         phi[i] = math.acos(-y / np.sqrt(x**2 + y**2 + z**2))
 
     # theta = np.arctan(-z / x)
-    ball_coordinates = np.stack([theta, phi], axis=-1)
+    sphere_coordinates = np.stack([theta, phi], axis=-1)
 
-    return ball_coordinates
+    return sphere_coordinates
 
 
 def project_onto_ball(positions, head_position, radius):
     """
-    params:
+    params: positions: 3-d numpy array, the original positions collected from unity
+    params: head_position: 3-d position, the fitting sphere's center
+    params: radius: float, radius of the sphere
     return:
     """
     new_positions = np.array(positions)
@@ -117,14 +142,28 @@ def fit_radius(positions, head_position):
 
 
 def main():
-    """main
+    """
+    saved json format:
+        User_{uid}.json
+        --[name]: string
+        --[uid]: integer
+        --[fps]: integer
+        --[data]: dict
+        ----[word]: dict in list
+        ------[pos]: 2d list
+        ------[face]: 3d list
+        ------[time]: float
+        ------[dir]: float
+        ------[vel]: float
     """
     global FLAG_IF_VISULIZZATION
-    # read voc one by one as pos_list
+    final_dict = {}
     for _, _, files in os.walk(DATA_DIR_PATH):
+        data_dict = {}
+        # read voc one by one as pos_list
         for fi in files:
+            word_data_list = []
             filename = os.path.join(DATA_DIR_PATH, fi)
-            print (filename)
             with codecs.open(filename, 'r', 'utf-8-sig') as f:
                 pos_list = []
                 raw_data = json.load(f)
@@ -136,15 +175,43 @@ def main():
 
                 pos_new = project_onto_ball(pos_list, HEAD, radius)
 
-                ball_coordinates = transformed_onto_ball_coordinates(pos_new)
+                ball_coordinates = transforme_onto_sphere_coordinates(pos_new)
 
+                normalized_pos = normalize(ball_coordinates)
+
+                # only visulize the first vocabulary
                 if FLAG_IF_VISULIZZATION:
-                    visulization_ori_3D(1, pos_list)
-                    visulization_ori_3D(2, pos_new)
-                    visulization_2D(3, ball_coordinates)
+                    visulization_3D(1, pos_list)
+                    visulization_3D(2, pos_new)
+                    visulization_2D(3, normalized_pos)
                     plt.show(block=False)
                     FLAG_IF_VISULIZZATION = False
-    
+
+                if 'uid' not in final_dict:
+                    final_dict['uid'] = raw_data['id']
+                    final_dict['name'] = raw_data['name']
+                    final_dict['fps'] = raw_data['fps']
+
+                for i, v in enumerate(normalized_pos):
+                    temp_dict = {}
+                    temp_dict['pos'] = v.tolist()
+                    temp_dict['face'] = raw_data['data'][i]['face']
+                    temp_dict['time'] = raw_data['data'][i]['time']
+                    temp_dict['dir'] = raw_data['data'][i]['direction']
+                    temp_dict['vel'] = raw_data['data'][i]['velocity']
+                    word_data_list.append(temp_dict)
+
+                word = raw_data['word']
+                data_dict[word] = word_data_list
+            print ("Successfully normalize vocabulary::", fi)
+        final_dict['data'] = data_dict
+
+    stored_filepath = os.path.join(
+        NORMALIZED_DATA_DIR_PATH, 'User_' + str(final_dict['uid']) + '.json')
+    with codecs.open(stored_filepath, 'w', 'utf-8') as out:
+        json.dump(final_dict, out, encoding="utf-8", ensure_ascii=False)
+    print ("Saved to file path::", stored_filepath)
+
     raw_input("Hit Enter To Close")
     plt.close('all')
 
@@ -152,4 +219,6 @@ def main():
 if __name__ == '__main__':
     if not os.path.exists(DATA_DIR_PATH):
         os.makedirs(DATA_DIR_PATH)
+    if not os.path.exists(NORMALIZED_DATA_DIR_PATH):
+        os.makedirs(NORMALIZED_DATA_DIR_PATH)
     main()
