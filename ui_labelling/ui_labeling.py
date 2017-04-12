@@ -168,10 +168,11 @@ class AppEngine(FloatLayout):
     def lastButtoncallback(self, instance):
         print ('The button <%s> is being pressed' % instance.text)
         temp_idx = self.vocs_idx_counter - 1
-        if self.vocs_idx_counter >= 0:
-            points, voc_length = self.read_voc_from_json( self.all_vocs_data.keys()[self.vocs_idx_counter])
-            self.board.init_board(points, voc_length)
+        if temp_idx >= 0:
             self.vocs_idx_counter = temp_idx
+            points, voc_length = self.read_voc_from_json(
+                self.all_vocs_data.keys()[self.vocs_idx_counter])
+            self.board.init_board(points, voc_length)
         else:
             # end
             pass
@@ -180,9 +181,10 @@ class AppEngine(FloatLayout):
         print ('The button <%s> is being pressed' % instance.text)
         temp_idx = self.vocs_idx_counter + 1
         if temp_idx < self.vocs_amount:
-            points, voc_length = self.read_voc_from_json( self.all_vocs_data.keys()[self.vocs_idx_counter])
-            self.board.init_board(points, voc_length)
             self.vocs_idx_counter = temp_idx
+            points, voc_length = self.read_voc_from_json(
+                self.all_vocs_data.keys()[self.vocs_idx_counter])
+            self.board.init_board(points, voc_length)
         else:
             # end
             pass
@@ -204,7 +206,8 @@ class AppEngine(FloatLayout):
         x_range = x_amax - x_amin
         x_scale = 1.0 / x_range
         scaled_pos[:, 0] = scaled_pos[:, 0] * x_scale * self.board.width
-        scaled_pos[:, 1] = scaled_pos[:, 1] * x_scale * self.board.height + self.board.y_offset
+        scaled_pos[:, 1] = scaled_pos[:, 1] * x_scale * \
+            self.board.height + self.board.y_offset
 
         return scaled_pos.flatten().tolist(), voc_length
 
