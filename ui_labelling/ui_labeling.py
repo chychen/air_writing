@@ -6,6 +6,7 @@ import json
 import os
 import sys
 import codecs
+import random
 import numpy as np
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
@@ -30,11 +31,13 @@ TARGET_FILE_PATH = os.path.join(NORMALIZED_DATA_DIR_PATH, 'User_0')
 class StartCursor(Widget):
     def __init__(self, *args, **kwargs):
         super(StartCursor, self).__init__(*args, **kwargs)
+        self.rgb = kwargs['color']
 
 
 class EndCursor(Widget):
     def __init__(self, *args, **kwargs):
         super(EndCursor, self).__init__(*args, **kwargs)
+        self.rgb = kwargs['color']
 
 
 class SlideBar(Widget):
@@ -42,11 +45,6 @@ class SlideBar(Widget):
 
     def __init__(self, *args, **kwargs):
         super(SlideBar, self).__init__(*args, **kwargs)
-
-    # def on_touch_down(self, touch):
-    #     super(SlideBar, self).on_touch_down(touch)
-    #     s1 = StartCursor(pos=(touch.x, self.height * 7 / 16))
-    #     self.add_widget(s1)
 
 
 class DrawingBoard(Widget):
@@ -56,31 +54,41 @@ class DrawingBoard(Widget):
 
     def __init__(self, *args, **kwargs):
         super(DrawingBoard, self).__init__(*args, **kwargs)
+        self.all_selected_points_list = []
+        self.all_cursor_list = []
+        self.all_canvas_point_list = []
+        self.all_connectionist_color_list = []
 
     def init_board(self, points, voc_length):
         self.canvas.clear()
         self.points = points
         voc_lines = Line(points=self.points, width=4)
-        self.canvas.add(Color(.4, .4, 1, .3))
+        self.canvas.add(Color(.6, .6, .6, .6))
         self.canvas.add(voc_lines)
         voc_points = Point(points=self.points, pointsize=5)
-        self.canvas.add(Color(.4, .4, 1, 1))
+        self.canvas.add(Color(.6, .6, .6, 1))
         self.canvas.add(voc_points)
 
         # add default cursors
         self.all_selected_points_list = []
         self.all_cursor_list = []
+        self.all_connectionist_color_list = []
         for i in range(voc_length - 1):
+            # random colors
+            r = random.randint(8, 11) / 10.0
+            g = random.randint(0, 11) / 10.0
+            b = random.randint(0, 11) / 10.0
+            self.all_connectionist_color_list.append(Color(r, g, b))
             # start cursor
             start_x = ((i + 1) / voc_length - 1.0 / 4.0 / voc_length)
             temp_start_cursor = StartCursor(
-                pos=(start_x * self.width, SlideBar().y_offset))
+                pos=(start_x * self.width, SlideBar().y_offset), color=[r,g,b])
             self.add_widget(temp_start_cursor)
             self.all_cursor_list.append(temp_start_cursor)
             # end cursor
             end_x = ((i + 1) / voc_length + 1.0 / 4.0 / voc_length)
             temp_end_cursor = EndCursor(
-                pos=(end_x * self.width, SlideBar().y_offset))
+                pos=(end_x * self.width, SlideBar().y_offset), color=[r,g,b])
             self.add_widget(temp_end_cursor)
             self.all_cursor_list.append(temp_end_cursor)
             # selected points
@@ -93,11 +101,11 @@ class DrawingBoard(Widget):
         # record pointers pointing to canvas's Point in
         # 'self.all_canvas_point_list'
         self.all_canvas_point_list = []
-        for selected_points in self.all_selected_points_list:
+        for i, selected_points in enumerate(self.all_selected_points_list):
             # temp_P = Point(points=selected_points, pointsize=5)
             temp_P = Line(points=selected_points, width=3)
             self.all_canvas_point_list.append(temp_P)
-            self.canvas.add(Color(1., 0, 0))
+            self.canvas.add(self.all_connectionist_color_list[i])
             self.canvas.add(temp_P)
 
     def on_touch_move(self, touch):
@@ -198,7 +206,6 @@ class AppEngine(FloatLayout):
         for time_step_dict in voc_timestep_list:
             # i: timestep in one voc as dict format
             voc_pos_list.append(time_step_dict['pos'])
-        # TODO:!!!!!!!!!!!!!!!!!!!!!! auto next voc
         scaled_pos = np.array(voc_pos_list)
         # normalization
         x_amax = np.amax(scaled_pos[:, 0])
