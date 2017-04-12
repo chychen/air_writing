@@ -137,10 +137,10 @@ class DrawingBoard(Widget):
 
         # make sure the cursor's center_x value won't exceed neighbors
         if closest_cursor_id > 0 and closest_cursor_id < len(self.all_cursor_list) - 1:
-            if self.all_cursor_list[closest_cursor_id + 1].x < closest_cursor.center_x:
-                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id + 1].x - 1
-            if self.all_cursor_list[closest_cursor_id - 1].x > closest_cursor.center_x:
-                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id - 1].x + 1
+            if self.all_cursor_list[closest_cursor_id + 1].x < closest_cursor.center_x - 10:
+                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id + 1].x - 10
+            if self.all_cursor_list[closest_cursor_id - 1].x > closest_cursor.center_x + 10:
+                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id - 1].x + 10
 
         self.update_selected_points()
 

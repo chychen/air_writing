@@ -14,12 +14,9 @@ import matplotlib.pyplot as plt
 import scipy.linalg
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-DATA_DIR_PATH = os.path.join(DIR_PATH, 'voc/rich')
+DATA_DIR_PATH = os.path.join(DIR_PATH, 'voc/xdex')
 NORMALIZED_DATA_DIR_PATH = os.path.join(DIR_PATH, 'normalized_voc')
 FLAG_IF_VISULIZZATION = False
-
-# TODO: get mean position of head and the mean height of all points
-HEAD = [-1.37, 1.64, -0.285]
 
 
 def normalize(positions):
@@ -40,10 +37,11 @@ def normalize(positions):
     return result
 
 
-def visulization_3D(fig_id, positions):
+def visulization_3D(fig_id, positions, head_position):
     """ 
     params: fig_id: positive integer, canvas figure id
     params: positions: 3d positions as numpy array
+    params: head_position: 3-d numpy array, the center of fitting sphere
     visulize 3d positions on specific figure
     """
     fig = plt.figure(fig_id)
@@ -51,8 +49,8 @@ def visulization_3D(fig_id, positions):
     # scatter x:x, y:z, z:y
     ax.scatter(positions[:, 0], positions[:, 2],
                positions[:, 1], c='b', marker='o')
-    ax.scatter(HEAD[0], HEAD[2],
-               HEAD[1], c='r', marker='o')
+    ax.scatter(head_position[:, 0], head_position[:, 2],
+               head_position[:, 1], c='r', marker='o')
     # line
     plt.plot(positions[:, 0], positions[:, 2], positions[:, 1], c='g')
 
@@ -71,12 +69,13 @@ def visulization_2D(fig_id, new_pos):
     plt.plot(new_pos[:, 0], new_pos[:, 1])
 
 
-def transforme_onto_sphere_coordinates(positions):
+def transforme_onto_sphere_coordinates(positions, head_position):
     """
     params: positions: 3d positions as numpy array
+    params: head_position: 3-d numpy array, the center of fitting sphere
     return: sphere_coordinates: 2-d numpy array as [theta, phi] in the sphere coordinates
     """
-    relative_pos = positions - HEAD
+    relative_pos = positions - head_position
 
     phi = np.empty(relative_pos.shape[0])
     theta = np.empty(relative_pos.shape[0])
@@ -107,23 +106,23 @@ def transforme_onto_sphere_coordinates(positions):
 def project_onto_ball(positions, head_position, radius):
     """
     params: positions: 3-d numpy array, the original positions collected from unity
-    params: head_position: 3-d position, the fitting sphere's center
+    params: head_position: 3-d numpy array, the center of fitting sphere
     params: radius: float, radius of the sphere
     return:
     """
     new_positions = np.array(positions)
     for i, v in enumerate(positions):
-        vec = [v[0] - head_position[0],
-               v[1] - head_position[1],
-               v[2] - head_position[2]]
+        vec = [v[0] - head_position[i][0],
+               v[1] - head_position[i][1],
+               v[2] - head_position[i][2]]
         dist = math.sqrt(vec[0]**2 +
                          vec[1]**2 +
                          vec[2]**2)
         vec = np.array(vec)
         vec = vec / dist * radius
-        new_positions[i] = [head_position[0] + vec[0],
-                            head_position[1] + vec[1],
-                            head_position[2] + vec[2]]
+        new_positions[i] = [head_position[i][0] + vec[0],
+                            head_position[i][1] + vec[1],
+                            head_position[i][2] + vec[2]]
     return new_positions
 
 
@@ -133,9 +132,9 @@ def fit_radius(positions, head_position):
     return: r: fitted radius for 3d ball
     """
     n = positions.shape[0]
-    ball_function = (positions[:, 0] - head_position[0])**2 + \
-        (positions[:, 1] - head_position[1])**2 + \
-        (positions[:, 2] - head_position[2])**2
+    ball_function = (positions[:, 0] - head_position[:, 0])**2 + \
+        (positions[:, 1] - head_position[:, 1])**2 + \
+        (positions[:, 2] - head_position[:, 2])**2
 
     r = math.sqrt(np.sum(ball_function) / n)
     return r
@@ -166,23 +165,27 @@ def main():
             filename = os.path.join(DATA_DIR_PATH, fi)
             with codecs.open(filename, 'r', 'utf-8-sig') as f:
                 pos_list = []
+                head_pos_list = []
                 raw_data = json.load(f)
                 for i in range(len(raw_data['data'])):
                     pos_list.append(raw_data['data'][i]['position'])
+                    head_pos_list.append(raw_data['data'][i]['head'])
                 pos_list = np.array(pos_list)
+                head_pos_list = np.array(head_pos_list)
 
-                radius = fit_radius(pos_list, HEAD)
+                radius = fit_radius(pos_list, head_pos_list)
 
-                pos_new = project_onto_ball(pos_list, HEAD, radius)
+                pos_new = project_onto_ball(pos_list, head_pos_list, radius)
 
-                ball_coordinates = transforme_onto_sphere_coordinates(pos_new)
+                ball_coordinates = transforme_onto_sphere_coordinates(
+                    pos_new, head_pos_list)
 
                 normalized_pos = normalize(ball_coordinates)
 
                 # only visulize the first vocabulary
                 if FLAG_IF_VISULIZZATION:
-                    visulization_3D(1, pos_list)
-                    visulization_3D(2, pos_new)
+                    visulization_3D(1, pos_list, head_pos_list)
+                    visulization_3D(2, pos_new, head_pos_list)
                     visulization_2D(3, normalized_pos)
                     plt.show()
 
