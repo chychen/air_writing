@@ -14,9 +14,9 @@ import matplotlib.pyplot as plt
 import scipy.linalg
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-DATA_DIR_PATH = os.path.join(DIR_PATH, 'voc/xdex')
+DATA_DIR_PATH = os.path.join(DIR_PATH, 'voc/rich')
 NORMALIZED_DATA_DIR_PATH = os.path.join(DIR_PATH, 'normalized_voc')
-FLAG_IF_VISULIZZATION = True
+FLAG_IF_VISULIZZATION = False
 
 # TODO: get mean position of head and the mean height of all points
 HEAD = [-1.37, 1.64, -0.285]
@@ -184,8 +184,7 @@ def main():
                     visulization_3D(1, pos_list)
                     visulization_3D(2, pos_new)
                     visulization_2D(3, normalized_pos)
-                    plt.show(block=False)
-                    FLAG_IF_VISULIZZATION = False
+                    plt.show()
 
                 if 'uid' not in final_dict:
                     final_dict['uid'] = raw_data['id']
@@ -212,7 +211,6 @@ def main():
         json.dump(final_dict, out, encoding="utf-8", ensure_ascii=False)
     print ("Saved to file path::", stored_filepath)
 
-    raw_input("Hit Enter To Close")
     plt.close('all')
 
 

@@ -1,0 +1,63 @@
+#:kivy 1.9.0
+
+<StartCursor>:
+    size: 10, 20 
+    rgba: (0, .5, 0, 1)
+    canvas:
+        Color:
+            rgba: self.rgba
+        Rectangle:
+            pos: self.pos[0] , self.pos[1]
+            size: self.size        
+
+<EndCursor>:
+    size: 10, 20 
+    rgba: (1, 0, 0, 1)
+    canvas:
+        Color:
+            rgba: self.rgba
+        Rectangle:
+            pos: self.pos[0] - self.size[0] / 2, self.pos[1]
+            size: self.size         
+
+<SlideBar>
+    canvas:
+        Color: 
+            rgba: .8, .8, .8, 1
+        Rectangle:
+            size: self.width, self.height / 8
+            pos: 0, self.y_offset
+
+<DrawingBoard>:
+
+<AppEngine>:
+    lastButton: last_button
+    nextButton: next_button
+    board: drawing_board
+
+    FloatLayout:
+
+        SlideBar:
+            id: slide_bar
+            size_hint: (1, .1)
+            pos_hint: {'x':0, 'y':0}
+
+        DrawingBoard:
+            id: drawing_board
+            size_hint: (1, .8)
+            pos_hint: {'x':0, 'y':.1}
+
+        Button:
+            id: last_button
+            text: "Last"
+            size_hint: (.5, .1)
+            pos_hint: {'x':0, 'y':.9}
+            background_color: (0, 1, 1, 1)
+
+        Button:
+            id: next_button
+            text: "Next"
+            size_hint: (.5, .1)
+            pos_hint: {'x':.5, 'y':.9}
+            background_color: (0, 1, 1, 1)
+        
