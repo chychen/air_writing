@@ -59,8 +59,9 @@ class DrawingBoard(Widget):
         self.all_selected_points_list = []
         self.all_selected_points_idx_list = []
         self.all_cursor_list = []
-        self.all_canvas_point_list = []
+        self.all_canvas_selected_line_list = []
         self.all_connectionist_color_list = []
+        self.all_cursor_lines_list = []
         self.voc_length = None
 
     def init_board(self, points, voc_length, restored_labeled_list=None):
@@ -93,6 +94,7 @@ class DrawingBoard(Widget):
         self.all_selected_points_idx_list = []
         self.all_selected_points_list = []
         self.all_cursor_list = []
+        self.all_cursor_lines_list = []
         temp_flag = False
         temp_start_idx = None
         temp_end_idx = None
@@ -108,7 +110,7 @@ class DrawingBoard(Widget):
                     temp_flag = True
             elif temp_flag is True:
                 if value is False:
-                    temp_end_idx = i + 1
+                    temp_end_idx = i
                     temp_flag = False
                     temp_selected_points = self.points[temp_start_idx *
                                                        2: temp_end_idx * 2]
@@ -125,15 +127,24 @@ class DrawingBoard(Widget):
                         pos=(end_x * self.width, SlideBar().y_offset), color=self.all_connectionist_color_list[counter].rgb)
                     self.add_widget(temp_end_cursor)
                     self.all_cursor_list.append(temp_end_cursor)
-                    counter += 1 
+                    # line between cursors
+                    temp_line_pos_list = [
+                        start_x * self.width + 10, SlideBar().y_offset + 5, end_x * self.width, SlideBar().y_offset + 5]
+                    temp_line = Line(points=temp_line_pos_list, width=5)
+                    self.all_cursor_lines_list.append(temp_line)
+                    self.canvas.add(
+                        self.all_connectionist_color_list[counter])  # add Color
+                    self.canvas.add(temp_line)  # add Line
+                    # color index
+                    counter += 1
 
         # visulize selected points on canvas and record pointers of those
         # canvas's Lines
-        self.all_canvas_point_list = []
+        self.all_canvas_selected_line_list = []
         for i, selected_points in enumerate(self.all_selected_points_list):
             # temp_P = Point(points=selected_points, pointsize=5)
             temp_P = Line(points=selected_points, width=3)
-            self.all_canvas_point_list.append(temp_P)
+            self.all_canvas_selected_line_list.append(temp_P)
             self.canvas.add(self.all_connectionist_color_list[i])  # add Color
             self.canvas.add(temp_P)  # add Line
 
@@ -143,6 +154,7 @@ class DrawingBoard(Widget):
         self.all_selected_points_idx_list = []
         self.all_cursor_list = []
         self.all_connectionist_color_list = []
+        self.all_cursor_lines_list = []
         for i in range(self.voc_length - 1):
             # random colors
             # start from 7 for brighter color space
@@ -162,9 +174,16 @@ class DrawingBoard(Widget):
                 pos=(end_x * self.width, SlideBar().y_offset), color=[r, g, b])
             self.add_widget(temp_end_cursor)
             self.all_cursor_list.append(temp_end_cursor)
+            # line between cursors
+            temp_line_pos_list = [
+                start_x * self.width + 10, SlideBar().y_offset + 5, end_x * self.width, SlideBar().y_offset + 5]
+            temp_line = Line(points=temp_line_pos_list, width=5)
+            self.all_cursor_lines_list.append(temp_line)
+            self.canvas.add(Color(r, g, b))  # add Color
+            self.canvas.add(temp_line)  # add Line
             # selected points
             start_point_idx = int(len(self.points) / 2 * start_x)
-            end_point_idx = int(len(self.points) / 2 * end_x) + 1
+            end_point_idx = int(len(self.points) / 2 * end_x)
             temp_selected_points = self.points[start_point_idx *
                                                2: end_point_idx * 2]
             self.all_selected_points_list.append(temp_selected_points)
@@ -173,11 +192,11 @@ class DrawingBoard(Widget):
 
         # record pointers pointing to canvas's Point in
         # 'self.all_canvas_point_list'
-        self.all_canvas_point_list = []
+        self.all_canvas_selected_line_list = []
         for i, selected_points in enumerate(self.all_selected_points_list):
             # temp_P = Point(points=selected_points, pointsize=5)
             temp_P = Line(points=selected_points, width=3)
-            self.all_canvas_point_list.append(temp_P)
+            self.all_canvas_selected_line_list.append(temp_P)
             self.canvas.add(self.all_connectionist_color_list[i])
             self.canvas.add(temp_P)
 
@@ -195,13 +214,13 @@ class DrawingBoard(Widget):
         return int(normalized_x * pointsLength)
 
     def update_selected_points(self):
-        self.all_selected_points_idx_list = [] # clear
-        for i, canvas_point in enumerate(self.all_canvas_point_list):
+        self.all_selected_points_idx_list = []  # clear
+        for i, canvas_selected_line in enumerate(self.all_canvas_selected_line_list):
             startPtIdx = self.get_cursor_matched_point_idx(
                 self.all_cursor_list[i * 2])
             endPtIdx = self.get_cursor_matched_point_idx(
-                self.all_cursor_list[i * 2 + 1]) + 1
-            canvas_point.points = self.points[startPtIdx * 2: endPtIdx * 2]
+                self.all_cursor_list[i * 2 + 1])
+            canvas_selected_line.points = self.points[startPtIdx * 2: endPtIdx * 2]
             for selected_idx in range(startPtIdx, endPtIdx, 1):
                 self.all_selected_points_idx_list.append(selected_idx)
 
@@ -218,6 +237,16 @@ class DrawingBoard(Widget):
                 closest_cursor_id = i
         if touch.x < self.width and touch.y < self.height:
             closest_cursor.center_x = touch.x
+            temp = self.all_cursor_lines_list[int(
+                closest_cursor_id / 2)].points
+            if closest_cursor_id % 2 is 0:
+                temp[0] = touch.x + 5  # start cursor
+                self.all_cursor_lines_list[int(
+                    closest_cursor_id / 2)].points = temp
+            elif closest_cursor_id % 2 is 1:
+                temp[2] = touch.x - 5  # end cursor
+                self.all_cursor_lines_list[int(
+                    closest_cursor_id / 2)].points = temp
 
         # make sure the cursor's center_x value won't exceed neighbors
         # '+-10' is for foolproof
