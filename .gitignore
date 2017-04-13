@@ -14,8 +14,8 @@ preprocessing/results/
 preprocessing/synthesized_data/
 preprocessing/normalized_voc/
 preprocessing/voc/
-UI_labelling/testing_data/
-UI_labelling/labeled_voc/
+ui_labeling/testing_data/
+ui_labeling/labeled_voc/
 env/
 build/
 develop-eggs/
