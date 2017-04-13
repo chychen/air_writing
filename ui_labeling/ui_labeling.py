@@ -61,10 +61,12 @@ class DrawingBoard(Widget):
         self.all_cursor_list = []
         self.all_canvas_point_list = []
         self.all_connectionist_color_list = []
+        self.voc_length = None
 
-    def init_board(self, points, voc_length):
+    def init_board(self, points, voc_length, restored_labeled_list=None):
         self.canvas.clear()
         self.points = points
+        self.voc_length = voc_length
         voc_lines = Line(points=self.points, width=4)
         self.canvas.add(Color(.6, .6, .6, .6))
         self.canvas.add(voc_lines)
@@ -72,12 +74,76 @@ class DrawingBoard(Widget):
         self.canvas.add(Color(.6, .6, .6, 1))
         self.canvas.add(voc_points)
 
+        if restored_labeled_list is not None:
+            self.init_restored(restored_labeled_list)
+        else:
+            self.init_default()
+
+    def init_restored(self, restored_labeled_list):
+        # restore cursors and correspond selected points
+        self.all_connectionist_color_list = []
+        for i in range(self.voc_length - 1):
+            # random colors
+            # start from 7 for brighter color space
+            r = random.randint(7, 11) / 10.0
+            g = random.randint(0, 11) / 10.0
+            b = random.randint(0, 11) / 10.0
+            self.all_connectionist_color_list.append(Color(r, g, b))
+
+        self.all_selected_points_idx_list = []
+        self.all_selected_points_list = []
+        self.all_cursor_list = []
+        temp_flag = False
+        temp_start_idx = None
+        temp_end_idx = None
+        counter = 0
+        for i, value in enumerate(restored_labeled_list):
+            # all_selected_points_idx_list
+            if value is True:
+                self.all_selected_points_idx_list.append(i)
+            # all_selected_points_list
+            if temp_flag is False:
+                if value is True:
+                    temp_start_idx = i
+                    temp_flag = True
+            elif temp_flag is True:
+                if value is False:
+                    temp_end_idx = i + 1
+                    temp_flag = False
+                    temp_selected_points = self.points[temp_start_idx *
+                                                       2: temp_end_idx * 2]
+                    self.all_selected_points_list.append(temp_selected_points)
+                    # start cursor
+                    start_x = (temp_start_idx / len(restored_labeled_list))
+                    temp_start_cursor = StartCursor(
+                        pos=(start_x * self.width, SlideBar().y_offset), color=self.all_connectionist_color_list[counter].rgb)
+                    self.add_widget(temp_start_cursor)
+                    self.all_cursor_list.append(temp_start_cursor)
+                    # end cursor
+                    end_x = (temp_end_idx / len(restored_labeled_list))
+                    temp_end_cursor = EndCursor(
+                        pos=(end_x * self.width, SlideBar().y_offset), color=self.all_connectionist_color_list[counter].rgb)
+                    self.add_widget(temp_end_cursor)
+                    self.all_cursor_list.append(temp_end_cursor)
+                    counter += 1 
+
+        # visulize selected points on canvas and record pointers of those
+        # canvas's Lines
+        self.all_canvas_point_list = []
+        for i, selected_points in enumerate(self.all_selected_points_list):
+            # temp_P = Point(points=selected_points, pointsize=5)
+            temp_P = Line(points=selected_points, width=3)
+            self.all_canvas_point_list.append(temp_P)
+            self.canvas.add(self.all_connectionist_color_list[i])  # add Color
+            self.canvas.add(temp_P)  # add Line
+
+    def init_default(self):
         # add default cursors and correspond selected points
         self.all_selected_points_list = []
         self.all_selected_points_idx_list = []
         self.all_cursor_list = []
         self.all_connectionist_color_list = []
-        for i in range(voc_length - 1):
+        for i in range(self.voc_length - 1):
             # random colors
             # start from 7 for brighter color space
             r = random.randint(7, 11) / 10.0
@@ -85,13 +151,13 @@ class DrawingBoard(Widget):
             b = random.randint(0, 11) / 10.0
             self.all_connectionist_color_list.append(Color(r, g, b))
             # start cursor
-            start_x = ((i + 1) / voc_length - 1.0 / 4.0 / voc_length)
+            start_x = ((i + 1) / self.voc_length - 1.0 / 4.0 / self.voc_length)
             temp_start_cursor = StartCursor(
                 pos=(start_x * self.width, SlideBar().y_offset), color=[r, g, b])
             self.add_widget(temp_start_cursor)
             self.all_cursor_list.append(temp_start_cursor)
             # end cursor
-            end_x = ((i + 1) / voc_length + 1.0 / 4.0 / voc_length)
+            end_x = ((i + 1) / self.voc_length + 1.0 / 4.0 / self.voc_length)
             temp_end_cursor = EndCursor(
                 pos=(end_x * self.width, SlideBar().y_offset), color=[r, g, b])
             self.add_widget(temp_end_cursor)
@@ -129,12 +195,15 @@ class DrawingBoard(Widget):
         return int(normalized_x * pointsLength)
 
     def update_selected_points(self):
+        self.all_selected_points_idx_list = [] # clear
         for i, canvas_point in enumerate(self.all_canvas_point_list):
             startPtIdx = self.get_cursor_matched_point_idx(
                 self.all_cursor_list[i * 2])
             endPtIdx = self.get_cursor_matched_point_idx(
                 self.all_cursor_list[i * 2 + 1]) + 1
             canvas_point.points = self.points[startPtIdx * 2: endPtIdx * 2]
+            for selected_idx in range(startPtIdx, endPtIdx, 1):
+                self.all_selected_points_idx_list.append(selected_idx)
 
     def touch_action(self, touch):
         # select the cloest cursor to modify its center_x
@@ -170,8 +239,8 @@ class AppEngine(FloatLayout):
 
     def __init__(self, *args, **kwargs):
         super(AppEngine, self).__init__(*args, **kwargs)
-        self.lastButton.bind(on_press=self.lastButtoncallback)
-        self.nextButton.bind(on_press=self.nextButtoncallback)
+        self.lastButton.bind(on_press=self.lastButtonCallback)
+        self.nextButton.bind(on_press=self.nextButtonCallback)
 
         filename = TARGET_FILE_PATH + ".json"
         with codecs.open(filename, 'r', 'utf-8-sig') as f:
@@ -183,34 +252,42 @@ class AppEngine(FloatLayout):
         # all we need to do is mark each timestep with 'isL'(isLabeled) value
         self.final_dict = json_data
 
-    def lastButtoncallback(self, instance):
+    def lastButtonCallback(self, instance):
+        # save labeled data into 'final_dict' before move next/ last word
+        self.update_final_dict()
+
+        # move to last word
         print ('!!!! Move to %s Word !!!!' % instance.text)
         temp_idx = self.vocs_idx_counter - 1
-        if temp_idx >= 0:
+        if self.is_idx_valid(temp_idx):
             self.vocs_idx_counter = temp_idx
+
+            # restore data if the word had been label
+            restored_labeled_list = self.restore_labeled_index()
+
             points, voc_length = self.read_voc_from_json(
                 self.all_vocs_data.keys()[self.vocs_idx_counter])
-            self.board.init_board(points, voc_length)
+            self.board.init_board(points, voc_length, restored_labeled_list)
         else:
             # end
             pass
 
-    def nextButtoncallback(self, instance):
-        # save labeled data into 'final_dict' before move next word
-        finished_voc = self.all_vocs_data.keys()[self.vocs_idx_counter]
-        voc_dict = self.final_dict['data'][finished_voc]
-        for _, timestep_dict in enumerate(voc_dict):
-            timestep_dict['isL'] = False # default value with False: not labeled
-        for labeled_idx in self.board.all_selected_points_idx_list:
-            voc_dict[labeled_idx]['isL'] = True # selected timestep idx with True: labeled
+    def nextButtonCallback(self, instance):
+        # save labeled data into 'final_dict' before move next/ last word
+        self.update_final_dict()
 
+        # move to next word
         print ('!!!! Move to %s Word !!!!' % instance.text)
         temp_idx = self.vocs_idx_counter + 1
-        if temp_idx < self.vocs_amount:
+        if self.is_idx_valid(temp_idx):
             self.vocs_idx_counter = temp_idx
+
+            # restore data if the word had been label
+            restored_labeled_list = self.restore_labeled_index()
+
             points, voc_length = self.read_voc_from_json(
                 self.all_vocs_data.keys()[self.vocs_idx_counter])
-            self.board.init_board(points, voc_length)
+            self.board.init_board(points, voc_length, restored_labeled_list)
         else:
             # end
             result_filename = RESULT_FILE_PATH + ".json"
@@ -219,13 +296,39 @@ class AppEngine(FloatLayout):
                           encoding="utf-8", ensure_ascii=False)
             print ("Saved to file path::", result_filename)
 
+    def is_idx_valid(self, index):
+        return index >= 0 and index < self.vocs_amount
+
+    def update_final_dict(self):
+        if self.is_idx_valid(self.vocs_idx_counter):
+            finished_voc = self.final_dict['data'].keys()[
+                self.vocs_idx_counter]
+            voc_dict = self.final_dict['data'][finished_voc]
+            for _, timestep_dict in enumerate(voc_dict):
+                # default value with False: not labeled
+                timestep_dict['isL'] = False
+            for labeled_idx in self.board.all_selected_points_idx_list:
+                # selected timestep idx with True: labeled
+                voc_dict[labeled_idx]['isL'] = True
+
+    def restore_labeled_index(self):
+        next_word = self.final_dict['data'].keys()[
+            self.vocs_idx_counter]
+        restored_labeled_list = []
+        if 'isL' in self.final_dict['data'][next_word][0]:
+            for timestep_dict in self.final_dict['data'][next_word]:
+                restored_labeled_list.append(timestep_dict['isL'])
+            return restored_labeled_list
+        else:
+            return None
+
     def read_voc_from_json(self, voc):
         """
         params: voc: string, the traget word
         return:
         """
-        print (voc)
-        print (len(str(voc)))
+        print ("voc::", voc)
+        print ("length::", len(str(voc)))
         voc_length = len(str(voc))
         voc_pos_list = []
         voc_timestep_list = self.all_vocs_data[voc]
