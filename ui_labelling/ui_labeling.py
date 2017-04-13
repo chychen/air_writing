@@ -6,6 +6,7 @@ import json
 import os
 import sys
 import codecs
+import random
 import numpy as np
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
@@ -24,17 +25,22 @@ Config.set('graphics', 'height', '1200')
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 NORMALIZED_DATA_DIR_PATH = os.path.join(DIR_PATH, 'normalized_voc')
-TARGET_FILE_PATH = os.path.join(NORMALIZED_DATA_DIR_PATH, 'User_0')
+LABELED_DATA_DIR_PATH = os.path.join(DIR_PATH, 'labeled_voc')
+USER_FILE_NAME = 'User_0'
+TARGET_FILE_PATH = os.path.join(NORMALIZED_DATA_DIR_PATH, USER_FILE_NAME)
+RESULT_FILE_PATH = os.path.join(LABELED_DATA_DIR_PATH, USER_FILE_NAME)
 
 
 class StartCursor(Widget):
     def __init__(self, *args, **kwargs):
         super(StartCursor, self).__init__(*args, **kwargs)
+        self.rgb = kwargs['color']
 
 
 class EndCursor(Widget):
     def __init__(self, *args, **kwargs):
         super(EndCursor, self).__init__(*args, **kwargs)
+        self.rgb = kwargs['color']
 
 
 class SlideBar(Widget):
@@ -43,44 +49,51 @@ class SlideBar(Widget):
     def __init__(self, *args, **kwargs):
         super(SlideBar, self).__init__(*args, **kwargs)
 
-    # def on_touch_down(self, touch):
-    #     super(SlideBar, self).on_touch_down(touch)
-    #     s1 = StartCursor(pos=(touch.x, self.height * 7 / 16))
-    #     self.add_widget(s1)
-
 
 class DrawingBoard(Widget):
-    # trajectory
-    y_offset = NumericProperty(200.0)
-    points = ListProperty([])
 
     def __init__(self, *args, **kwargs):
         super(DrawingBoard, self).__init__(*args, **kwargs)
+        self.y_offset = 200.0
+        self.points = []
+        self.all_selected_points_list = []
+        self.all_selected_points_idx_list = []
+        self.all_cursor_list = []
+        self.all_canvas_point_list = []
+        self.all_connectionist_color_list = []
 
     def init_board(self, points, voc_length):
         self.canvas.clear()
         self.points = points
         voc_lines = Line(points=self.points, width=4)
-        self.canvas.add(Color(.4, .4, 1, .3))
+        self.canvas.add(Color(.6, .6, .6, .6))
         self.canvas.add(voc_lines)
         voc_points = Point(points=self.points, pointsize=5)
-        self.canvas.add(Color(.4, .4, 1, 1))
+        self.canvas.add(Color(.6, .6, .6, 1))
         self.canvas.add(voc_points)
 
-        # add default cursors
+        # add default cursors and correspond selected points
         self.all_selected_points_list = []
+        self.all_selected_points_idx_list = []
         self.all_cursor_list = []
+        self.all_connectionist_color_list = []
         for i in range(voc_length - 1):
+            # random colors
+            # start from 7 for brighter color space
+            r = random.randint(7, 11) / 10.0
+            g = random.randint(0, 11) / 10.0
+            b = random.randint(0, 11) / 10.0
+            self.all_connectionist_color_list.append(Color(r, g, b))
             # start cursor
             start_x = ((i + 1) / voc_length - 1.0 / 4.0 / voc_length)
             temp_start_cursor = StartCursor(
-                pos=(start_x * self.width, SlideBar().y_offset))
+                pos=(start_x * self.width, SlideBar().y_offset), color=[r, g, b])
             self.add_widget(temp_start_cursor)
             self.all_cursor_list.append(temp_start_cursor)
             # end cursor
             end_x = ((i + 1) / voc_length + 1.0 / 4.0 / voc_length)
             temp_end_cursor = EndCursor(
-                pos=(end_x * self.width, SlideBar().y_offset))
+                pos=(end_x * self.width, SlideBar().y_offset), color=[r, g, b])
             self.add_widget(temp_end_cursor)
             self.all_cursor_list.append(temp_end_cursor)
             # selected points
@@ -89,15 +102,17 @@ class DrawingBoard(Widget):
             temp_selected_points = self.points[start_point_idx *
                                                2: end_point_idx * 2]
             self.all_selected_points_list.append(temp_selected_points)
+            for selected_idx in range(start_point_idx, end_point_idx, 1):
+                self.all_selected_points_idx_list.append(selected_idx)
 
         # record pointers pointing to canvas's Point in
         # 'self.all_canvas_point_list'
         self.all_canvas_point_list = []
-        for selected_points in self.all_selected_points_list:
+        for i, selected_points in enumerate(self.all_selected_points_list):
             # temp_P = Point(points=selected_points, pointsize=5)
             temp_P = Line(points=selected_points, width=3)
             self.all_canvas_point_list.append(temp_P)
-            self.canvas.add(Color(1., 0, 0))
+            self.canvas.add(self.all_connectionist_color_list[i])
             self.canvas.add(temp_P)
 
     def on_touch_move(self, touch):
@@ -136,12 +151,12 @@ class DrawingBoard(Widget):
             closest_cursor.center_x = touch.x
 
         # make sure the cursor's center_x value won't exceed neighbors
+        # '+-10' is for foolproof
         if closest_cursor_id > 0 and closest_cursor_id < len(self.all_cursor_list) - 1:
-            if self.all_cursor_list[closest_cursor_id + 1].x < closest_cursor.center_x - 10:
+            if self.all_cursor_list[closest_cursor_id + 1].x < closest_cursor.center_x + 10:
                 closest_cursor.center_x = self.all_cursor_list[closest_cursor_id + 1].x - 10
-            if self.all_cursor_list[closest_cursor_id - 1].x > closest_cursor.center_x + 10:
+            if self.all_cursor_list[closest_cursor_id - 1].x > closest_cursor.center_x - 10:
                 closest_cursor.center_x = self.all_cursor_list[closest_cursor_id - 1].x + 10
-
         self.update_selected_points()
 
 
@@ -164,9 +179,12 @@ class AppEngine(FloatLayout):
         self.vocs_idx_counter = -1
         self.all_vocs_data = json_data['data']
         self.vocs_amount = len(json_data['data'])
+        # copy all data from original json
+        # all we need to do is mark each timestep with 'isL'(isLabeled) value
+        self.final_dict = json_data
 
     def lastButtoncallback(self, instance):
-        print ('The button <%s> is being pressed' % instance.text)
+        print ('!!!! Move to %s Word !!!!' % instance.text)
         temp_idx = self.vocs_idx_counter - 1
         if temp_idx >= 0:
             self.vocs_idx_counter = temp_idx
@@ -178,7 +196,15 @@ class AppEngine(FloatLayout):
             pass
 
     def nextButtoncallback(self, instance):
-        print ('The button <%s> is being pressed' % instance.text)
+        # save labeled data into 'final_dict' before move next word
+        finished_voc = self.all_vocs_data.keys()[self.vocs_idx_counter]
+        voc_dict = self.final_dict['data'][finished_voc]
+        for _, timestep_dict in enumerate(voc_dict):
+            timestep_dict['isL'] = False # default value with False: not labeled
+        for labeled_idx in self.board.all_selected_points_idx_list:
+            voc_dict[labeled_idx]['isL'] = True # selected timestep idx with True: labeled
+
+        print ('!!!! Move to %s Word !!!!' % instance.text)
         temp_idx = self.vocs_idx_counter + 1
         if temp_idx < self.vocs_amount:
             self.vocs_idx_counter = temp_idx
@@ -187,9 +213,17 @@ class AppEngine(FloatLayout):
             self.board.init_board(points, voc_length)
         else:
             # end
-            pass
+            result_filename = RESULT_FILE_PATH + ".json"
+            with codecs.open(result_filename, 'w', 'utf-8') as out:
+                json.dump(self.final_dict, out,
+                          encoding="utf-8", ensure_ascii=False)
+            print ("Saved to file path::", result_filename)
 
     def read_voc_from_json(self, voc):
+        """
+        params: voc: string, the traget word
+        return:
+        """
         print (voc)
         print (len(str(voc)))
         voc_length = len(str(voc))
@@ -198,7 +232,6 @@ class AppEngine(FloatLayout):
         for time_step_dict in voc_timestep_list:
             # i: timestep in one voc as dict format
             voc_pos_list.append(time_step_dict['pos'])
-        # TODO:!!!!!!!!!!!!!!!!!!!!!! auto next voc
         scaled_pos = np.array(voc_pos_list)
         # normalization
         x_amax = np.amax(scaled_pos[:, 0])
@@ -223,4 +256,9 @@ class LabelingApp(App):
 
 
 if __name__ == '__main__':
+    if not os.path.exists(NORMALIZED_DATA_DIR_PATH):
+        os.makedirs(NORMALIZED_DATA_DIR_PATH)
+    if not os.path.exists(LABELED_DATA_DIR_PATH):
+        os.makedirs(LABELED_DATA_DIR_PATH)
+
     LabelingApp().run()
