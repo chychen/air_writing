@@ -2,20 +2,20 @@
 
 <StartCursor>:
     size: 10, 20 
-    rgba: (0, .5, 0, 1)
+    rgb: 1, 1, 1
     canvas:
         Color:
-            rgba: self.rgba
+            rgb: self.rgb
         Rectangle:
             pos: self.pos[0] , self.pos[1]
             size: self.size        
 
 <EndCursor>:
     size: 10, 20 
-    rgba: (1, 0, 0, 1)
+    rgb: 1, 1, 1
     canvas:
         Color:
-            rgba: self.rgba
+            rgb: self.rgb
         Rectangle:
             pos: self.pos[0] - self.size[0] / 2, self.pos[1]
             size: self.size         
@@ -23,7 +23,7 @@
 <SlideBar>
     canvas:
         Color: 
-            rgba: .8, .8, .8, 1
+            rgba: .6, .6, .6, .6
         Rectangle:
             size: self.width, self.height / 8
             pos: 0, self.y_offset
