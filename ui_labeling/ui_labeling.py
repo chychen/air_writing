@@ -12,9 +12,11 @@ from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.widget import Widget
-from kivy.properties import NumericProperty, ReferenceListProperty,\
-    ObjectProperty, ListProperty, OptionProperty, BooleanProperty
+from kivy.properties import NumericProperty, StringProperty,\
+    ObjectProperty, ListProperty
 from kivy.uix.button import Button
+from kivy.uix.popup import Popup
+from kivy.uix.label import Label
 from kivy.config import Config
 from kivy.graphics import Point, Color, Line
 import kivy
@@ -29,6 +31,19 @@ LABELED_DATA_DIR_PATH = os.path.join(DIR_PATH, 'labeled_voc')
 USER_FILE_NAME = 'User_0'
 TARGET_FILE_PATH = os.path.join(NORMALIZED_DATA_DIR_PATH, USER_FILE_NAME)
 RESULT_FILE_PATH = os.path.join(LABELED_DATA_DIR_PATH, USER_FILE_NAME)
+
+
+class ContentWithButton(BoxLayout):
+    content_text = StringProperty("")
+    button_text = StringProperty("")
+
+    def __init__(self, *args, **kwargs):
+        super(ContentWithButton, self).__init__(*args, **kwargs)
+        self.content_text = kwargs['content_text']
+        self.button_text = kwargs['button_text']
+
+    def exit(self):
+        App.get_running_app().stop()
 
 
 class StartCursor(Widget):
@@ -220,7 +235,8 @@ class DrawingBoard(Widget):
                 self.all_cursor_list[i * 2])
             endPtIdx = self.get_cursor_matched_point_idx(
                 self.all_cursor_list[i * 2 + 1])
-            canvas_selected_line.points = self.points[startPtIdx * 2: endPtIdx * 2]
+            canvas_selected_line.points = self.points[startPtIdx *
+                                                      2: endPtIdx * 2]
             for selected_idx in range(startPtIdx, endPtIdx, 1):
                 self.all_selected_points_idx_list.append(selected_idx)
 
@@ -265,11 +281,13 @@ class AppEngine(FloatLayout):
     lastButton = ObjectProperty(None)
     nextButton = ObjectProperty(None)
     board = ObjectProperty(None)
+    text = StringProperty("")
 
     def __init__(self, *args, **kwargs):
         super(AppEngine, self).__init__(*args, **kwargs)
         self.lastButton.bind(on_press=self.lastButtonCallback)
         self.nextButton.bind(on_press=self.nextButtonCallback)
+        self.text = ""
 
         filename = TARGET_FILE_PATH + ".json"
         with codecs.open(filename, 'r', 'utf-8-sig') as f:
@@ -325,6 +343,19 @@ class AppEngine(FloatLayout):
                           encoding="utf-8", ensure_ascii=False)
             print ("Saved to file path::", result_filename)
 
+            # create content and add to the popup
+            content = ContentWithButton(
+                content_text="Many Thanks!\nLabeled data have saved to following path:\n" + result_filename, button_text='Close App')
+            popup = Popup(title="!!Congrat!!",
+                          title_size='56sp',
+                          title_align='center',
+                          title_color=[1, 1, 1, 1],
+                          content=content,
+                          auto_dismiss=False,
+                          size_hint=(.6, .4))
+            # open the popup
+            popup.open()
+
     def is_idx_valid(self, index):
         return index >= 0 and index < self.vocs_amount
 
@@ -358,6 +389,7 @@ class AppEngine(FloatLayout):
         """
         print ("voc::", voc)
         print ("length::", len(str(voc)))
+        self.text = str(voc)
         voc_length = len(str(voc))
         voc_pos_list = []
         voc_timestep_list = self.all_vocs_data[voc]
@@ -383,8 +415,8 @@ class LabelingApp(App):
     """
 
     def build(self):
-        Label = AppEngine()
-        return Label
+        LabelApp = AppEngine()
+        return LabelApp
 
 
 if __name__ == '__main__':
