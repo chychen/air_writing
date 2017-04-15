@@ -326,13 +326,14 @@ class AppEngine(FloatLayout):
         self.lastButton.bind(on_press=self.lastButtonCallback)
         self.nextButton.bind(on_press=self.nextButtonCallback)
         self.word = ""
+        self.user_id = user_id
 
-        self.filename = TARGET_FILE_PATH + user_id + ".json"
-        if not os.path.isfile(self.filename):
+        filename = TARGET_FILE_PATH + user_id + ".json"
+        if not os.path.isfile(filename):
             self.create_userid_textinput(title="Try Again")
             return
         else:
-            with codecs.open(self.filename, 'r', 'utf-8-sig') as f:
+            with codecs.open(filename, 'r', 'utf-8-sig') as f:
                 json_data = json.load(f)
             self.vocs_idx_counter = -1
             self.all_vocs_data = json_data['data']
@@ -388,21 +389,22 @@ class AppEngine(FloatLayout):
             self.board.init_board(points, voc_length, restored_labeled_list)
         else:
             # end
-            with codecs.open(self.filename, 'w', 'utf-8') as out:
+            result_filename = RESULT_FILE_PATH + self.user_id + ".json"
+            with codecs.open(result_filename, 'w', 'utf-8') as out:
                 json.dump(self.final_dict, out,
                           encoding="utf-8", ensure_ascii=False)
-            print ("Saved to file path::", self.filename)
+            print ("Saved to file path::", result_filename)
 
             # create content and add to the popup
             content = ContentWithButton(
-                content_text="Many Thanks!\nLabeled data have saved to following path:\n" + self.filename, button_text='Close App')
+                content_text="Many Thanks!\nLabeled data have saved to following path:\n" + result_filename, button_text='Close App')
             popup = Popup(title="!!Congrat!!",
                           title_size='56sp',
                           title_align='center',
                           title_color=[1, 1, 1, 1],
                           content=content,
                           auto_dismiss=False,
-                          size_hint=(.5, .4))
+                          size_hint=(.4, .4))
             # open the popup
             popup.open()
 
