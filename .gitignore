@@ -14,6 +14,7 @@ preprocessing/results/
 preprocessing/synthesized_data/
 preprocessing/normalized_voc/
 preprocessing/voc/
+ui_labeling/normalized_voc/
 ui_labeling/testing_data/
 ui_labeling/labeled_voc/
 env/
