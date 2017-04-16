@@ -293,15 +293,17 @@ class AppEngine(FloatLayout):
     lastButton = ObjectProperty(None)
     nextButton = ObjectProperty(None)
     board = ObjectProperty(None)
-    word = StringProperty("")
+    word = StringProperty("None")
+    word_idx = StringProperty("None")
 
     def __init__(self, *args, **kwargs):
         super(AppEngine, self).__init__(*args, **kwargs)
 
-        self.vocs_idx_counter = None
         self.all_vocs_data = None
         self.vocs_amount = None
         self.final_dict = None
+        self.vocs_idx_counter = None
+        self.user_id = 0
 
         # create content and add to the popup
         self.create_userid_textinput(title="User ID")
@@ -325,7 +327,6 @@ class AppEngine(FloatLayout):
     def init(self, user_id):
         self.lastButton.bind(on_press=self.lastButtonCallback)
         self.nextButton.bind(on_press=self.nextButtonCallback)
-        self.word = ""
         self.user_id = user_id
 
         filename = TARGET_FILE_PATH + user_id + ".json"
@@ -442,6 +443,7 @@ class AppEngine(FloatLayout):
         print ("voc::", voc)
         print ("length::", len(str(voc)))
         self.word = str(voc)
+        self.word_idx = str(self.vocs_idx_counter)
         voc_length = len(str(voc))
         voc_pos_list = []
         voc_timestep_list = self.all_vocs_data[voc]
