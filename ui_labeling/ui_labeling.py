@@ -291,6 +291,7 @@ class AppEngine(FloatLayout):
     main app
     """
     lastButton = ObjectProperty(None)
+    saveButton = ObjectProperty(None)
     nextButton = ObjectProperty(None)
     board = ObjectProperty(None)
     word = StringProperty("None")
@@ -326,6 +327,7 @@ class AppEngine(FloatLayout):
 
     def init(self, user_id):
         self.lastButton.bind(on_press=self.lastButtonCallback)
+        self.saveButton.bind(on_press=self.saveButtonCallback)
         self.nextButton.bind(on_press=self.nextButtonCallback)
         self.user_id = user_id
 
@@ -353,6 +355,29 @@ class AppEngine(FloatLayout):
         # move to last word
         print ('!!!! Move to <Last> Word !!!!')
         self.move_last_voc()
+
+    def saveButtonCallback(self, instance):
+        result_filename = RESULT_FILE_PATH + self.user_id + ".json"
+        with codecs.open(result_filename, 'w', 'utf-8') as out:
+            json.dump(self.final_dict, out,
+                      encoding="utf-8", ensure_ascii=False)
+        print ("Saved to file path::", result_filename)
+
+        # create content and add to the popup
+        content = Label(
+            text="Labeled data have saved to following path:\n" + result_filename,
+            text_size=(self.width, None),
+            halign='center',
+            font_size='32sp')
+        popup = Popup(title="Successully Saved",
+                      title_size='56sp',
+                      title_align='center',
+                      title_color=[1, 1, 1, 1],
+                      content=content,
+                      auto_dismiss=True,
+                      size_hint=(.65, .25))
+        # open the popup
+        popup.open()
 
     def nextButtonCallback(self, instance):
         # save labeled data into 'final_dict' before move next/ last word
