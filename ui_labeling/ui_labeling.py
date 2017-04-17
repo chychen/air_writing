@@ -23,10 +23,13 @@ import kivy
 kivy.require('1.9.0')
 Config.set('graphics', 'width', '1800')
 Config.set('graphics', 'height', '1200')
+from preprocessing.sphere_fitting import fit_sphere
 
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-NORMALIZED_DATA_DIR_PATH = os.path.join(DIR_PATH, 'normalized_voc')
+DATA_DIR_PATH = os.path.join(DIR_PATH, 'preprocessing/voc')
+NORMALIZED_DATA_DIR_PATH = os.path.join(
+    DIR_PATH, 'preprocessing/normalized_voc')
 LABELED_DATA_DIR_PATH = os.path.join(DIR_PATH, 'labeled_voc')
 USER_FILE_NAME = 'User_'
 TARGET_FILE_PATH = os.path.join(NORMALIZED_DATA_DIR_PATH, USER_FILE_NAME)
@@ -305,6 +308,8 @@ class AppEngine(FloatLayout):
         self.final_dict = None
         self.vocs_idx_counter = None
         self.user_id = 0
+        self.filename = ""
+        self.result_filename = ""
 
         # create content and add to the popup
         self.create_userid_textinput(title="User ID")
@@ -331,22 +336,30 @@ class AppEngine(FloatLayout):
         self.nextButton.bind(on_press=self.nextButtonCallback)
         self.user_id = user_id
 
-        filename = TARGET_FILE_PATH + user_id + ".json"
-        if not os.path.isfile(filename):
+        data_filepath = os.path.join(DATA_DIR_PATH, self.user_id)
+        self.result_filename = RESULT_FILE_PATH + self.user_id + ".json"
+        self.filename = TARGET_FILE_PATH + user_id + ".json"
+        if os.path.isfile(self.result_filename):  # first, check if labeled
+            pass
+        elif os.path.isfile(self.filename):  # second, check if exist
+            pass
+        elif fit_sphere(data_filepath):  # third, create it and check if successfull
+            pass
+        else:
             self.create_userid_textinput(title="Try Again")
             return
-        else:
-            with codecs.open(filename, 'r', 'utf-8-sig') as f:
-                json_data = json.load(f)
-            self.vocs_idx_counter = -1
-            self.all_vocs_data = json_data['data']
-            self.vocs_amount = len(json_data['data'])
-            # copy all data from original json
-            # all we need to do is mark each timestep with 'isL'(isLabeled)
-            # value
-            self.final_dict = json_data
 
-            self.move_next_voc()
+        with codecs.open(self.filename, 'r', 'utf-8-sig') as f:
+            json_data = json.load(f)
+        self.vocs_idx_counter = -1
+        self.all_vocs_data = json_data['data']
+        self.vocs_amount = len(json_data['data'])
+        # copy all data from original json
+        # all we need to do is mark each timestep with 'isL'(isLabeled)
+        # value
+        self.final_dict = json_data
+
+        self.move_next_voc()
 
     def lastButtonCallback(self, instance):
         # save labeled data into 'final_dict' before move next/ last word
@@ -357,15 +370,14 @@ class AppEngine(FloatLayout):
         self.move_last_voc()
 
     def saveButtonCallback(self, instance):
-        result_filename = RESULT_FILE_PATH + self.user_id + ".json"
-        with codecs.open(result_filename, 'w', 'utf-8') as out:
+        with codecs.open(self.result_filename, 'w', 'utf-8') as out:
             json.dump(self.final_dict, out,
                       encoding="utf-8", ensure_ascii=False)
-        print ("Saved to file path::", result_filename)
+        print ("Saved to file path::", self.result_filename)
 
         # create content and add to the popup
         content = Label(
-            text="Labeled data have saved to following path:\n" + result_filename,
+            text="Labeled data have saved to following path:\n" + self.result_filename,
             text_size=(self.width, None),
             halign='center',
             font_size='32sp')
@@ -503,5 +515,4 @@ if __name__ == '__main__':
         os.makedirs(NORMALIZED_DATA_DIR_PATH)
     if not os.path.exists(LABELED_DATA_DIR_PATH):
         os.makedirs(LABELED_DATA_DIR_PATH)
-
     LabelingApp().run()
