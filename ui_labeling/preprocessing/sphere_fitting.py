@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import scipy.linalg
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-DATA_DIR_PATH = os.path.join(DIR_PATH, 'voc/xdex')
+DATA_DIR_PATH = os.path.join(DIR_PATH, 'voc/4444')
 NORMALIZED_DATA_DIR_PATH = os.path.join(DIR_PATH, 'normalized_voc')
 FLAG_IF_VISULIZZATION = False
 
@@ -140,7 +140,7 @@ def fit_radius(positions, head_position):
     return r
 
 
-def main():
+def fit_sphere(data_path):
     """
     saved json format:
         User_{uid}.json
@@ -155,14 +155,20 @@ def main():
         ------[dir]: float
         ------[vel]: float
     """
+    if  not os.path.isdir(data_path):
+        print ("ERROR: Directory Not Found:", data_path)
+        return False
+    if not os.path.exists(NORMALIZED_DATA_DIR_PATH):
+        os.makedirs(NORMALIZED_DATA_DIR_PATH)
+
     global FLAG_IF_VISULIZZATION
     final_dict = {}
-    for _, _, files in os.walk(DATA_DIR_PATH):
+    for _, _, files in os.walk(data_path):
         data_dict = {}
         # read voc one by one as pos_list
         for fi in files:
             word_data_list = []
-            filename = os.path.join(DATA_DIR_PATH, fi)
+            filename = os.path.join(data_path, fi)
             with codecs.open(filename, 'r', 'utf-8-sig') as f:
                 pos_list = []
                 head_pos_list = []
@@ -214,12 +220,12 @@ def main():
         json.dump(final_dict, out, encoding="utf-8", ensure_ascii=False)
     print ("Saved to file path::", stored_filepath)
 
-    plt.close('all')
+    if FLAG_IF_VISULIZZATION:
+        plt.close('all')
+
+    
+    return True
 
 
 if __name__ == '__main__':
-    if not os.path.exists(DATA_DIR_PATH):
-        os.makedirs(DATA_DIR_PATH)
-    if not os.path.exists(NORMALIZED_DATA_DIR_PATH):
-        os.makedirs(NORMALIZED_DATA_DIR_PATH)
-    main()
+    fit_sphere(DATA_DIR_PATH)

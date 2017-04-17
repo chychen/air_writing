@@ -12,25 +12,36 @@ from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.widget import Widget
-from kivy.properties import NumericProperty, StringProperty,\
-    ObjectProperty, ListProperty
+from kivy.properties import NumericProperty, StringProperty, ObjectProperty, ListProperty
 from kivy.uix.button import Button
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
 from kivy.config import Config
+from kivy.uix.textinput import TextInput
 from kivy.graphics import Point, Color, Line
 import kivy
 kivy.require('1.9.0')
 Config.set('graphics', 'width', '1800')
 Config.set('graphics', 'height', '1200')
+from preprocessing.sphere_fitting import fit_sphere
 
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-NORMALIZED_DATA_DIR_PATH = os.path.join(DIR_PATH, 'normalized_voc')
+DATA_DIR_PATH = os.path.join(DIR_PATH, 'preprocessing/voc')
+NORMALIZED_DATA_DIR_PATH = os.path.join(
+    DIR_PATH, 'preprocessing/normalized_voc')
 LABELED_DATA_DIR_PATH = os.path.join(DIR_PATH, 'labeled_voc')
-USER_FILE_NAME = 'User_0'
+USER_FILE_NAME = 'User_'
 TARGET_FILE_PATH = os.path.join(NORMALIZED_DATA_DIR_PATH, USER_FILE_NAME)
 RESULT_FILE_PATH = os.path.join(LABELED_DATA_DIR_PATH, USER_FILE_NAME)
+
+
+class UserIDTextInput(BoxLayout):
+    button_text = StringProperty("")
+
+    def __init__(self, *args, **kwargs):
+        super(UserIDTextInput, self).__init__(*args, **kwargs)
+        self.on_enter = kwargs['on_enter']
 
 
 class ContentWithButton(BoxLayout):
@@ -78,8 +89,10 @@ class DrawingBoard(Widget):
         self.all_connectionist_color_list = []
         self.all_cursor_lines_list = []
         self.voc_length = None
+        self.isInit = False
 
     def init_board(self, points, voc_length, restored_labeled_list=None):
+        self.isInit = True
         self.canvas.clear()
         self.points = points
         self.voc_length = voc_length
@@ -217,11 +230,13 @@ class DrawingBoard(Widget):
 
     def on_touch_move(self, touch):
         super(DrawingBoard, self).on_touch_down(touch)
-        self.touch_action(touch)
+        if self.isInit:
+            self.touch_action(touch)
 
     def on_touch_down(self, touch):
         super(DrawingBoard, self).on_touch_down(touch)
-        self.touch_action(touch)
+        if self.isInit:
+            self.touch_action(touch)
 
     def get_cursor_matched_point_idx(self, cursor):
         normalized_x = cursor.center_x / self.width
@@ -279,32 +294,112 @@ class AppEngine(FloatLayout):
     main app
     """
     lastButton = ObjectProperty(None)
+    saveButton = ObjectProperty(None)
     nextButton = ObjectProperty(None)
     board = ObjectProperty(None)
-    text = StringProperty("")
+    word = StringProperty("None")
+    word_idx = StringProperty("None")
 
     def __init__(self, *args, **kwargs):
         super(AppEngine, self).__init__(*args, **kwargs)
-        self.lastButton.bind(on_press=self.lastButtonCallback)
-        self.nextButton.bind(on_press=self.nextButtonCallback)
-        self.text = ""
 
-        filename = TARGET_FILE_PATH + ".json"
-        with codecs.open(filename, 'r', 'utf-8-sig') as f:
+        self.all_vocs_data = None
+        self.vocs_amount = None
+        self.final_dict = None
+        self.vocs_idx_counter = None
+        self.user_id = 0
+        self.filename = ""
+        self.result_filename = ""
+
+        # create content and add to the popup
+        self.create_userid_textinput(title="User ID")
+
+    def create_userid_textinput(self, title):
+        content = UserIDTextInput(on_enter=self.on_enter)
+        self.popupUserID = Popup(title=title,
+                                 title_size='48sp',
+                                 title_align='center',
+                                 title_color=[1, 1, 1, 1],
+                                 content=content,
+                                 auto_dismiss=False,
+                                 size_hint=(.15, .2))
+        # open the popup
+        self.popupUserID.open()
+
+    def on_enter(self, user_id):
+        self.popupUserID.dismiss()
+        self.init(user_id)
+
+    def init(self, user_id):
+        self.lastButton.bind(on_press=self.lastButtonCallback)
+        self.saveButton.bind(on_press=self.saveButtonCallback)
+        self.nextButton.bind(on_press=self.nextButtonCallback)
+        self.user_id = user_id
+
+        data_filepath = os.path.join(DATA_DIR_PATH, self.user_id)
+        self.result_filename = RESULT_FILE_PATH + self.user_id + ".json"
+        self.filename = TARGET_FILE_PATH + user_id + ".json"
+        if os.path.isfile(self.result_filename):  # first, check if labeled
+            pass
+        elif os.path.isfile(self.filename):  # second, check if exist
+            pass
+        elif fit_sphere(data_filepath):  # third, create it and check if successfull
+            pass
+        else:
+            self.create_userid_textinput(title="Try Again")
+            return
+
+        with codecs.open(self.filename, 'r', 'utf-8-sig') as f:
             json_data = json.load(f)
         self.vocs_idx_counter = -1
         self.all_vocs_data = json_data['data']
         self.vocs_amount = len(json_data['data'])
         # copy all data from original json
-        # all we need to do is mark each timestep with 'isL'(isLabeled) value
+        # all we need to do is mark each timestep with 'isL'(isLabeled)
+        # value
         self.final_dict = json_data
+
+        self.move_next_voc()
 
     def lastButtonCallback(self, instance):
         # save labeled data into 'final_dict' before move next/ last word
         self.update_final_dict()
 
         # move to last word
-        print ('!!!! Move to %s Word !!!!' % instance.text)
+        print ('!!!! Move to <Last> Word !!!!')
+        self.move_last_voc()
+
+    def saveButtonCallback(self, instance):
+        with codecs.open(self.result_filename, 'w', 'utf-8') as out:
+            json.dump(self.final_dict, out,
+                      encoding="utf-8", ensure_ascii=False)
+        print ("Saved to file path::", self.result_filename)
+
+        # create content and add to the popup
+        content = Label(
+            text="Labeled data have saved to following path:\n" + self.result_filename,
+            text_size=(self.width, None),
+            halign='center',
+            font_size='32sp')
+        popup = Popup(title="Successully Saved",
+                      title_size='56sp',
+                      title_align='center',
+                      title_color=[1, 1, 1, 1],
+                      content=content,
+                      auto_dismiss=True,
+                      size_hint=(.65, .25))
+        # open the popup
+        popup.open()
+
+    def nextButtonCallback(self, instance):
+        # save labeled data into 'final_dict' before move next/ last word
+        self.update_final_dict()
+
+        # move to next word
+        print ('!!!! Move to <Next> Word !!!!')
+        self.move_next_voc()
+
+    def move_last_voc(self):
         temp_idx = self.vocs_idx_counter - 1
         if self.is_idx_valid(temp_idx):
             self.vocs_idx_counter = temp_idx
@@ -319,12 +414,7 @@ class AppEngine(FloatLayout):
             # end
             pass
 
-    def nextButtonCallback(self, instance):
-        # save labeled data into 'final_dict' before move next/ last word
-        self.update_final_dict()
-
-        # move to next word
-        print ('!!!! Move to %s Word !!!!' % instance.text)
+    def move_next_voc(self):
         temp_idx = self.vocs_idx_counter + 1
         if self.is_idx_valid(temp_idx):
             self.vocs_idx_counter = temp_idx
@@ -337,7 +427,7 @@ class AppEngine(FloatLayout):
             self.board.init_board(points, voc_length, restored_labeled_list)
         else:
             # end
-            result_filename = RESULT_FILE_PATH + ".json"
+            result_filename = RESULT_FILE_PATH + self.user_id + ".json"
             with codecs.open(result_filename, 'w', 'utf-8') as out:
                 json.dump(self.final_dict, out,
                           encoding="utf-8", ensure_ascii=False)
@@ -352,7 +442,7 @@ class AppEngine(FloatLayout):
                           title_color=[1, 1, 1, 1],
                           content=content,
                           auto_dismiss=False,
-                          size_hint=(.6, .4))
+                          size_hint=(.4, .4))
             # open the popup
             popup.open()
 
@@ -389,7 +479,8 @@ class AppEngine(FloatLayout):
         """
         print ("voc::", voc)
         print ("length::", len(str(voc)))
-        self.text = str(voc)
+        self.word = str(voc)
+        self.word_idx = str(self.vocs_idx_counter)
         voc_length = len(str(voc))
         voc_pos_list = []
         voc_timestep_list = self.all_vocs_data[voc]
@@ -424,5 +515,4 @@ if __name__ == '__main__':
         os.makedirs(NORMALIZED_DATA_DIR_PATH)
     if not os.path.exists(LABELED_DATA_DIR_PATH):
         os.makedirs(LABELED_DATA_DIR_PATH)
-
     LabelingApp().run()
