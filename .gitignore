@@ -9,11 +9,11 @@ __pycache__/
 # Distribution / packaging
 .Python
 data_collection/data/
-preprocessing/data/
-preprocessing/results/
-preprocessing/synthesized_data/
-preprocessing/normalized_voc/
-preprocessing/voc/
+ui_labeling/preprocessing/data/
+ui_labeling/preprocessing/results/
+ui_labeling/preprocessing/not_used/synthesized_data/
+ui_labeling/preprocessing/not_used/normalized_voc/
+ui_labeling/preprocessing/voc/
 ui_labeling/normalized_voc/
 ui_labeling/testing_data/
 ui_labeling/labeled_voc/
