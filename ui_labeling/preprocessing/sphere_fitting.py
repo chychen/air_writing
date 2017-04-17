@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import scipy.linalg
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-DATA_DIR_PATH = os.path.join(DIR_PATH, 'voc/4321')
+DATA_DIR_PATH = os.path.join(DIR_PATH, 'voc/4444')
 NORMALIZED_DATA_DIR_PATH = os.path.join(DIR_PATH, 'normalized_voc')
 FLAG_IF_VISULIZZATION = False
 
@@ -155,7 +155,8 @@ def fit_sphere(data_path):
         ------[dir]: float
         ------[vel]: float
     """
-    if  os.path.isfile(data_path):
+    if  not os.path.isdir(data_path):
+        print ("ERROR: Directory Not Found:", data_path)
         return False
     if not os.path.exists(NORMALIZED_DATA_DIR_PATH):
         os.makedirs(NORMALIZED_DATA_DIR_PATH)
