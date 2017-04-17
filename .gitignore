@@ -8,14 +8,14 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-data_collection/data/
-ui_labeling/preprocessing/not_used/data/
-ui_labeling/preprocessing/results/
-ui_labeling/preprocessing/not_used/synthesized_data/
-ui_labeling/preprocessing/not_used/normalized_voc/
+not_used/data_collection/data/
+not_used/data/
+not_used/data/results/
+not_used/synthesized_data/
+not_used/normalized_voc/
+not_used/testing_data/
 ui_labeling/preprocessing/voc/
-ui_labeling/normalized_voc/
-ui_labeling/testing_data/
+ui_labeling/preprocessing/normalized_voc/
 ui_labeling/labeled_voc/
 env/
 build/
