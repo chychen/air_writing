@@ -12,7 +12,7 @@ not_used/data_collection/data/
 not_used/data/
 not_used/data/results/
 not_used/synthesized_data/
-not_used/normalized_voc/
+not_used/normalized_data/
 not_used/testing_data/
 ui_labeling/preprocessing/voc/
 ui_labeling/preprocessing/normalized_voc/
