@@ -9,7 +9,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 data_collection/data/
-ui_labeling/preprocessing/data/
+ui_labeling/preprocessing/not_used/data/
 ui_labeling/preprocessing/results/
 ui_labeling/preprocessing/not_used/synthesized_data/
 ui_labeling/preprocessing/not_used/normalized_voc/
