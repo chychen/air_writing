@@ -10,11 +10,10 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
-
 import scipy.linalg
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-DATA_DIR_PATH = os.path.join(DIR_PATH, 'voc/4444')
+DATA_DIR_PATH = os.path.join(DIR_PATH, 'voc/4321')
 NORMALIZED_DATA_DIR_PATH = os.path.join(DIR_PATH, 'normalized_voc')
 FLAG_IF_VISULIZZATION = False
 
@@ -142,6 +141,8 @@ def fit_radius(positions, head_position):
 
 def fit_sphere(data_path):
     """
+    params: data_path: location of the original data collected via VIVE(unity leap motion)
+    return: : boolean: if the normalization 
     saved json format:
         User_{uid}.json
         --[name]: string
@@ -155,7 +156,7 @@ def fit_sphere(data_path):
         ------[dir]: float
         ------[vel]: float
     """
-    if  not os.path.isdir(data_path):
+    if not os.path.isdir(data_path):
         print ("ERROR: Directory Not Found:", data_path)
         return False
     if not os.path.exists(NORMALIZED_DATA_DIR_PATH):
@@ -223,9 +224,9 @@ def fit_sphere(data_path):
     if FLAG_IF_VISULIZZATION:
         plt.close('all')
 
-    
     return True
 
 
 if __name__ == '__main__':
-    fit_sphere(DATA_DIR_PATH)
+    if not fit_sphere(DATA_DIR_PATH):
+        print ("!!!!!!!!!!!!!!!!!Failed!!!!!!!!!!!!!!!!!")
