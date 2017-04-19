@@ -20,9 +20,9 @@ from kivy.config import Config
 from kivy.uix.textinput import TextInput
 from kivy.graphics import Point, Color, Line
 import kivy
-kivy.require('1.9.0')
+kivy.require('1.8.0')
 Config.set('graphics', 'width', '1800')
-Config.set('graphics', 'height', '1200')
+Config.set('graphics', 'height', '1000')
 from preprocessing.sphere_fitting import fit_sphere
 
 
@@ -308,7 +308,6 @@ class AppEngine(FloatLayout):
         self.final_dict = None
         self.vocs_idx_counter = None
         self.user_id = 0
-        self.filename = ""
         self.result_filename = ""
 
         # create content and add to the popup
@@ -337,19 +336,21 @@ class AppEngine(FloatLayout):
         self.user_id = user_id
 
         data_filepath = os.path.join(DATA_DIR_PATH, self.user_id)
+        filename=''
         self.result_filename = RESULT_FILE_PATH + self.user_id + ".json"
-        self.filename = TARGET_FILE_PATH + user_id + ".json"
+        normalized_filename = TARGET_FILE_PATH + user_id + ".json"
         if os.path.isfile(self.result_filename):  # first, check if labeled
-            pass
-        elif os.path.isfile(self.filename):  # second, check if exist
-            pass
-        elif fit_sphere(data_filepath):  # third, create it and check if successfull
-            pass
+            filename = self.result_filename
+        elif os.path.isfile(normalized_filename):  # second, check if exist
+            filename = normalized_filename
+        elif os.path.isfile(data_filepath): # check, origin voc if exist
+            if fit_sphere(data_filepath):  # forth, create it and check if successfull
+                filename = normalized_filename
         else:
             self.create_userid_textinput(title="Try Again")
             return
 
-        with codecs.open(self.filename, 'r', 'utf-8-sig') as f:
+        with codecs.open(filename, 'r', 'utf-8-sig') as f:
             json_data = json.load(f)
         self.vocs_idx_counter = -1
         self.all_vocs_data = json_data['data']
@@ -370,6 +371,9 @@ class AppEngine(FloatLayout):
         self.move_last_voc()
 
     def saveButtonCallback(self, instance):
+        # save labeled data into 'final_dict' before move next/ last word
+        self.update_final_dict()
+
         with codecs.open(self.result_filename, 'w', 'utf-8') as out:
             json.dump(self.final_dict, out,
                       encoding="utf-8", ensure_ascii=False)
@@ -491,11 +495,22 @@ class AppEngine(FloatLayout):
         # normalization
         x_amax = np.amax(scaled_pos[:, 0])
         x_amin = np.amin(scaled_pos[:, 0])
+        y_amax = np.amax(scaled_pos[:, 1])
+        y_amin = np.amin(scaled_pos[:, 1])
         x_range = x_amax - x_amin
-        x_scale = 1.0 / x_range
-        scaled_pos[:, 0] = scaled_pos[:, 0] * x_scale * self.board.width
-        scaled_pos[:, 1] = scaled_pos[:, 1] * x_scale * \
-            self.board.height + self.board.y_offset
+        y_range = y_amax - y_amin
+        if x_range > y_range:
+            x_scale = 1.0 / x_range
+            scaled_pos[:, 0] = scaled_pos[:, 0] * x_scale * \
+                self.board.width * 0.9 + self.board.width * 0.05
+            scaled_pos[:, 1] = scaled_pos[:, 1] * x_scale * \
+                self.board.height + self.board.height * 0.1
+        else:
+            y_scale = 1.0 / y_range
+            scaled_pos[:, 0] = scaled_pos[:, 0] * y_scale * \
+                self.board.width * 0.9 + self.board.width * 0.05
+            scaled_pos[:, 1] = scaled_pos[:, 1] * y_scale * \
+                self.board.height * 0.8 + self.board.height * 0.1
 
         return scaled_pos.flatten().tolist(), voc_length
 
