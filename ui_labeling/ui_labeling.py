@@ -91,9 +91,11 @@ class DrawingBoard(Widget):
         self.voc_length = None
         self.isInit = False
         self.high_contrast_colors_index = 0
-        self.high_contrast_colors = [Color(.9, .3, .3),
-                                     Color(.3, .9, .3),
-                                     Color(.3, .3, .9)]
+        self.high_contrast_colors = [Color(1, .3, .3),
+                                     Color(.3, 1, .3),
+                                     Color(.3, .3, 1),
+                                     Color(1, .1, 1),
+                                     Color(1, 1, .3)]
 
     def init_board(self, points, voc_length, restored_labeled_list=None):
         self.isInit = True
@@ -122,7 +124,7 @@ class DrawingBoard(Widget):
     def init_restored(self, restored_labeled_list):
         # restore cursors and correspond selected points
         self.all_connectionist_color_list = []
-        for i in range(self.voc_length - 1):
+        for i in range(self.voc_length):
             self.all_connectionist_color_list.append(self.get_color())
 
         self.all_selected_points_idx_list = []
@@ -143,7 +145,7 @@ class DrawingBoard(Widget):
                     temp_start_idx = i
                     temp_flag = True
             elif temp_flag is True:
-                if value is False:
+                if value is False or i == (len(restored_labeled_list) - 1):
                     temp_end_idx = i
                     temp_flag = False
                     temp_selected_points = self.points[temp_start_idx *
@@ -189,16 +191,19 @@ class DrawingBoard(Widget):
         self.all_cursor_list = []
         self.all_connectionist_color_list = []
         self.all_cursor_lines_list = []
-        for i in range(self.voc_length - 1):
+        # cursor_range = 1 / (2 * voc_length - 1)
+        # cursor-i: range(2 * i * cursor_range, (2 * i + 1) * cursor_range)
+        cursor_range = 1.0 / (2 * self.voc_length - 1)
+        for i in range(self.voc_length):
             self.all_connectionist_color_list.append(self.get_color())
             # start cursor
-            start_x = ((i + 1) / self.voc_length - 1.0 / 4.0 / self.voc_length)
+            start_x = 2 * i * cursor_range
             temp_start_cursor = StartCursor(
                 pos=(start_x * self.width, SlideBar().y_offset), color=self.all_connectionist_color_list[i].rgb)
             self.add_widget(temp_start_cursor)
             self.all_cursor_list.append(temp_start_cursor)
             # end cursor
-            end_x = ((i + 1) / self.voc_length + 1.0 / 4.0 / self.voc_length)
+            end_x = (2 * i + 1) * cursor_range
             temp_end_cursor = EndCursor(
                 pos=(end_x * self.width, SlideBar().y_offset), color=self.all_connectionist_color_list[i].rgb)
             self.add_widget(temp_end_cursor)
@@ -337,6 +342,7 @@ class AppEngine(FloatLayout):
         self.user_id = user_id
 
         data_filepath = os.path.join(DATA_DIR_PATH, self.user_id)
+        print (data_filepath)
         filename = ''
         self.result_filename = RESULT_FILE_PATH + self.user_id + ".json"
         normalized_filename = TARGET_FILE_PATH + user_id + ".json"
@@ -344,7 +350,7 @@ class AppEngine(FloatLayout):
             filename = self.result_filename
         elif os.path.isfile(normalized_filename):  # second, check if exist
             filename = normalized_filename
-        elif os.path.isfile(data_filepath):  # check, origin voc if exist
+        elif os.path.isdir(data_filepath):  # check, origin voc if exist
             if fit_sphere(data_filepath):  # forth, create it and check if successfull
                 filename = normalized_filename
         else:
