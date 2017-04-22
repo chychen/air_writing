@@ -90,6 +90,10 @@ class DrawingBoard(Widget):
         self.all_cursor_lines_list = []
         self.voc_length = None
         self.isInit = False
+        self.high_contrast_colors_index = 0
+        self.high_contrast_colors = [Color(.9, .3, .3),
+                                     Color(.3, .9, .3),
+                                     Color(.3, .3, .9)]
 
     def init_board(self, points, voc_length, restored_labeled_list=None):
         self.isInit = True
@@ -108,16 +112,18 @@ class DrawingBoard(Widget):
         else:
             self.init_default()
 
+    def get_color(self):
+        return_color = self.high_contrast_colors[self.high_contrast_colors_index]
+        self.high_contrast_colors_index += 1
+        if self.high_contrast_colors_index == len(self.high_contrast_colors):
+            self.high_contrast_colors_index = 0
+        return return_color
+
     def init_restored(self, restored_labeled_list):
         # restore cursors and correspond selected points
         self.all_connectionist_color_list = []
         for i in range(self.voc_length - 1):
-            # random colors
-            # start from 7 for brighter color space
-            r = random.randint(7, 11) / 10.0
-            g = random.randint(0, 11) / 10.0
-            b = random.randint(0, 11) / 10.0
-            self.all_connectionist_color_list.append(Color(r, g, b))
+            self.all_connectionist_color_list.append(self.get_color())
 
         self.all_selected_points_idx_list = []
         self.all_selected_points_list = []
@@ -184,22 +190,17 @@ class DrawingBoard(Widget):
         self.all_connectionist_color_list = []
         self.all_cursor_lines_list = []
         for i in range(self.voc_length - 1):
-            # random colors
-            # start from 7 for brighter color space
-            r = random.randint(7, 11) / 10.0
-            g = random.randint(0, 11) / 10.0
-            b = random.randint(0, 11) / 10.0
-            self.all_connectionist_color_list.append(Color(r, g, b))
+            self.all_connectionist_color_list.append(self.get_color())
             # start cursor
             start_x = ((i + 1) / self.voc_length - 1.0 / 4.0 / self.voc_length)
             temp_start_cursor = StartCursor(
-                pos=(start_x * self.width, SlideBar().y_offset), color=[r, g, b])
+                pos=(start_x * self.width, SlideBar().y_offset), color=self.all_connectionist_color_list[i].rgb)
             self.add_widget(temp_start_cursor)
             self.all_cursor_list.append(temp_start_cursor)
             # end cursor
             end_x = ((i + 1) / self.voc_length + 1.0 / 4.0 / self.voc_length)
             temp_end_cursor = EndCursor(
-                pos=(end_x * self.width, SlideBar().y_offset), color=[r, g, b])
+                pos=(end_x * self.width, SlideBar().y_offset), color=self.all_connectionist_color_list[i].rgb)
             self.add_widget(temp_end_cursor)
             self.all_cursor_list.append(temp_end_cursor)
             # line between cursors
@@ -207,7 +208,7 @@ class DrawingBoard(Widget):
                 start_x * self.width + 10, SlideBar().y_offset + 5, end_x * self.width, SlideBar().y_offset + 5]
             temp_line = Line(points=temp_line_pos_list, width=5)
             self.all_cursor_lines_list.append(temp_line)
-            self.canvas.add(Color(r, g, b))  # add Color
+            self.canvas.add(self.all_connectionist_color_list[i])  # add Color
             self.canvas.add(temp_line)  # add Line
             # selected points
             start_point_idx = int(len(self.points) / 2 * start_x)
@@ -336,14 +337,14 @@ class AppEngine(FloatLayout):
         self.user_id = user_id
 
         data_filepath = os.path.join(DATA_DIR_PATH, self.user_id)
-        filename=''
+        filename = ''
         self.result_filename = RESULT_FILE_PATH + self.user_id + ".json"
         normalized_filename = TARGET_FILE_PATH + user_id + ".json"
         if os.path.isfile(self.result_filename):  # first, check if labeled
             filename = self.result_filename
         elif os.path.isfile(normalized_filename):  # second, check if exist
             filename = normalized_filename
-        elif os.path.isfile(data_filepath): # check, origin voc if exist
+        elif os.path.isfile(data_filepath):  # check, origin voc if exist
             if fit_sphere(data_filepath):  # forth, create it and check if successfull
                 filename = normalized_filename
         else:
