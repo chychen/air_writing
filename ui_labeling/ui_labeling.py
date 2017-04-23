@@ -110,6 +110,8 @@ class DrawingBoard(Widget):
             self.init_restored(restored_labeled_list)
         else:
             self.init_default()
+        
+        self.update_selected_points()
 
     def get_color(self):
         return_color = self.high_contrast_colors[self.high_contrast_colors_index]
@@ -134,8 +136,8 @@ class DrawingBoard(Widget):
         counter = 0
         for i, value in enumerate(restored_labeled_list):
             # all_selected_points_idx_list
-            if value is True:
-                self.all_selected_points_idx_list.append(i)
+            # if value is True:
+            #     self.all_selected_points_idx_list.append(i)
             # all_selected_points_list
             if temp_flag is False:
                 if value is True:
@@ -143,6 +145,7 @@ class DrawingBoard(Widget):
                     temp_flag = True
             elif temp_flag is True:
                 if value is False or i == (len(restored_labeled_list) - 1):
+                    # selected points
                     temp_end_idx = i
                     temp_flag = False
                     temp_selected_points = self.points[temp_start_idx *
@@ -181,6 +184,7 @@ class DrawingBoard(Widget):
             self.canvas.add(self.all_connectionist_color_list[i])  # add Color
             self.canvas.add(temp_P)  # add Line
 
+
     def init_default(self):
         # add default cursors and correspond selected points
         self.all_selected_points_list = []
@@ -200,7 +204,7 @@ class DrawingBoard(Widget):
             self.add_widget(temp_start_cursor)
             self.all_cursor_list.append(temp_start_cursor)
             # end cursor
-            end_x = (2 * i + 1) * cursor_range
+            end_x = (2 * i + 1) * cursor_range - 0.01   # -1: index start from 0
             temp_end_cursor = EndCursor(
                 pos=(end_x * self.width, SlideBar().y_offset), color=self.all_connectionist_color_list[i].rgb)
             self.add_widget(temp_end_cursor)
@@ -218,8 +222,8 @@ class DrawingBoard(Widget):
             temp_selected_points = self.points[start_point_idx *
                                                2: end_point_idx * 2]
             self.all_selected_points_list.append(temp_selected_points)
-            for selected_idx in range(start_point_idx, end_point_idx, 1):
-                self.all_selected_points_idx_list.append(selected_idx)
+            # for selected_idx in range(start_point_idx, end_point_idx, 1):
+            #     self.all_selected_points_idx_list.append(selected_idx)
 
         # record pointers pointing to canvas's Point in
         # 'self.all_canvas_point_list'
@@ -285,10 +289,10 @@ class DrawingBoard(Widget):
         # make sure the cursor's center_x value won't exceed neighbors
         # '+-10' is for foolproof
         if closest_cursor_id > 0 and closest_cursor_id < len(self.all_cursor_list) - 1:
-            if self.all_cursor_list[closest_cursor_id + 1].x < closest_cursor.center_x + 10:
-                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id + 1].x - 10
-            if self.all_cursor_list[closest_cursor_id - 1].x > closest_cursor.center_x - 10:
-                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id - 1].x + 10
+            if self.all_cursor_list[closest_cursor_id + 1].x < closest_cursor.center_x + 5:
+                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id + 1].x - 5
+            if self.all_cursor_list[closest_cursor_id - 1].x > closest_cursor.center_x - 5:
+                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id - 1].x + 5
         self.update_selected_points()
 
 
