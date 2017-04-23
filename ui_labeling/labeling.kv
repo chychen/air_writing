@@ -1,4 +1,4 @@
-#:kivy 1.9.0
+#:kivy 1.8.0
 
 <UserIDTextInput>:
     BoxLayout:
@@ -62,7 +62,6 @@
 
 <AppEngine>:
     lastButton: last_button
-    saveButton: save_button
     nextButton: next_button
     board: drawing_board
 
@@ -82,22 +81,15 @@
         Button:
             id: last_button
             text: "Last"
-            size_hint: (.45, .1)
+            size_hint: (.5, .1)
             pos_hint: {'x':0, 'y':.9}
-            background_color: (0, 1, 1, 1)
-
-        Button:
-            id: save_button
-            text: "Save"
-            size_hint: (.1, .1)
-            pos_hint: {'x':.45, 'y':.9}
             background_color: (0, 1, 1, 1)
 
         Button:
             id: next_button
             text: "Next"
-            size_hint: (.45, .1)
-            pos_hint: {'x':.55, 'y':.9}
+            size_hint: (.5, .1)
+            pos_hint: {'x':.5, 'y':.9}
             background_color: (0, 1, 1, 1)
 
         Label:

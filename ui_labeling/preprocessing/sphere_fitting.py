@@ -10,12 +10,11 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
-
 import scipy.linalg
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-DATA_DIR_PATH = os.path.join(DIR_PATH, 'voc/4444')
-NORMALIZED_DATA_DIR_PATH = os.path.join(DIR_PATH, 'normalized_voc')
+DATA_DIR_PATH = os.path.join(DIR_PATH, 'voc/4322')
+NORMALIZED_DATA_DIR_PATH = os.path.join(DIR_PATH, 'normalized_voc/4322')
 FLAG_IF_VISULIZZATION = False
 
 
@@ -140,29 +139,32 @@ def fit_radius(positions, head_position):
     return r
 
 
-def fit_sphere(data_path):
+def fit_sphere(data_path, result_path):
     """
+    params: data_path: location of the original data collected via VIVE(unity leap motion)
+    params: result_path: location of the normalized data
+    return: : boolean: if the normalization 
     saved json format:
-        User_{uid}.json
+        create folder: {uid}
+        word.json
         --[name]: string
         --[uid]: integer
         --[fps]: integer
-        --[data]: dict
-        ----[word]: dict in list
-        ------[pos]: 2d list
-        ------[face]: 3d list
-        ------[time]: float
-        ------[dir]: float
-        ------[vel]: float
+        --[word]: string
+        --[data]: dict in list
+        ----[pos]: 2d list
+        ----[face]: 3d list
+        ----[time]: float
+        ----[dir]: float
+        ----[vel]: float
     """
-    if  not os.path.isdir(data_path):
+    if not os.path.isdir(data_path):
         print ("ERROR: Directory Not Found:", data_path)
         return False
-    if not os.path.exists(NORMALIZED_DATA_DIR_PATH):
-        os.makedirs(NORMALIZED_DATA_DIR_PATH)
+    if not os.path.exists(result_path):
+        os.makedirs(result_path)
 
     global FLAG_IF_VISULIZZATION
-    final_dict = {}
     for _, _, files in os.walk(data_path):
         data_dict = {}
         # read voc one by one as pos_list
@@ -195,11 +197,6 @@ def fit_sphere(data_path):
                     visulization_2D(3, normalized_pos)
                     plt.show()
 
-                if 'uid' not in final_dict:
-                    final_dict['uid'] = raw_data['id']
-                    final_dict['name'] = raw_data['name']
-                    final_dict['fps'] = raw_data['fps']
-
                 for i, v in enumerate(normalized_pos):
                     temp_dict = {}
                     temp_dict['pos'] = v.tolist()
@@ -209,23 +206,29 @@ def fit_sphere(data_path):
                     temp_dict['vel'] = raw_data['data'][i]['velocity']
                     word_data_list.append(temp_dict)
 
-                word = raw_data['word']
-                data_dict[word] = word_data_list
-            print ("Successfully normalize vocabulary::", fi)
-        final_dict['data'] = data_dict
+                data_dict['uid'] = raw_data['id']
+                data_dict['name'] = raw_data['name']
+                data_dict['fps'] = raw_data['fps']
+                data_dict['word'] = raw_data['word']
+                data_dict['data'] = word_data_list
+            # print ("Successfully normalize vocabulary::", fi)
 
-    stored_filepath = os.path.join(
-        NORMALIZED_DATA_DIR_PATH, 'User_' + str(final_dict['uid']) + '.json')
-    with codecs.open(stored_filepath, 'w', 'utf-8') as out:
-        json.dump(final_dict, out, encoding="utf-8", ensure_ascii=False)
-    print ("Saved to file path::", stored_filepath)
+            stored_filepath = os.path.join(
+                result_path, str(data_dict['word']) + '.json')
+            with codecs.open(stored_filepath, 'w', 'utf-8') as out:
+                json.dump(data_dict, out, encoding="utf-8", ensure_ascii=False)
+            # print ("Saved to file path::", stored_filepath)
+
 
     if FLAG_IF_VISULIZZATION:
         plt.close('all')
 
-    
     return True
 
 
 if __name__ == '__main__':
-    fit_sphere(DATA_DIR_PATH)
+    if not fit_sphere(DATA_DIR_PATH, NORMALIZED_DATA_DIR_PATH):
+        print ("!!!!!!!!!!!!!!!!!Failed!!!!!!!!!!!!!!!!!")
+    else:
+        print ("!!!Successfully normalize all vocs!!!")
+        

@@ -20,9 +20,9 @@ from kivy.config import Config
 from kivy.uix.textinput import TextInput
 from kivy.graphics import Point, Color, Line
 import kivy
-kivy.require('1.9.0')
+kivy.require('1.8.0')
 Config.set('graphics', 'width', '1800')
-Config.set('graphics', 'height', '1200')
+Config.set('graphics', 'height', '1000')
 from preprocessing.sphere_fitting import fit_sphere
 
 
@@ -31,9 +31,6 @@ DATA_DIR_PATH = os.path.join(DIR_PATH, 'preprocessing/voc')
 NORMALIZED_DATA_DIR_PATH = os.path.join(
     DIR_PATH, 'preprocessing/normalized_voc')
 LABELED_DATA_DIR_PATH = os.path.join(DIR_PATH, 'labeled_voc')
-USER_FILE_NAME = 'User_'
-TARGET_FILE_PATH = os.path.join(NORMALIZED_DATA_DIR_PATH, USER_FILE_NAME)
-RESULT_FILE_PATH = os.path.join(LABELED_DATA_DIR_PATH, USER_FILE_NAME)
 
 
 class UserIDTextInput(BoxLayout):
@@ -90,6 +87,12 @@ class DrawingBoard(Widget):
         self.all_cursor_lines_list = []
         self.voc_length = None
         self.isInit = False
+        self.high_contrast_colors_index = 0
+        self.high_contrast_colors = [Color(1, .3, .3),
+                                     Color(.3, 1, .3),
+                                     Color(.3, .3, 1),
+                                     Color(1, .1, 1),
+                                     Color(1, 1, .3)]
 
     def init_board(self, points, voc_length, restored_labeled_list=None):
         self.isInit = True
@@ -107,17 +110,21 @@ class DrawingBoard(Widget):
             self.init_restored(restored_labeled_list)
         else:
             self.init_default()
+        
+        self.update_selected_points()
+
+    def get_color(self):
+        return_color = self.high_contrast_colors[self.high_contrast_colors_index]
+        self.high_contrast_colors_index += 1
+        if self.high_contrast_colors_index == len(self.high_contrast_colors):
+            self.high_contrast_colors_index = 0
+        return return_color
 
     def init_restored(self, restored_labeled_list):
         # restore cursors and correspond selected points
         self.all_connectionist_color_list = []
-        for i in range(self.voc_length - 1):
-            # random colors
-            # start from 7 for brighter color space
-            r = random.randint(7, 11) / 10.0
-            g = random.randint(0, 11) / 10.0
-            b = random.randint(0, 11) / 10.0
-            self.all_connectionist_color_list.append(Color(r, g, b))
+        for i in range(self.voc_length):
+            self.all_connectionist_color_list.append(self.get_color())
 
         self.all_selected_points_idx_list = []
         self.all_selected_points_list = []
@@ -129,15 +136,16 @@ class DrawingBoard(Widget):
         counter = 0
         for i, value in enumerate(restored_labeled_list):
             # all_selected_points_idx_list
-            if value is True:
-                self.all_selected_points_idx_list.append(i)
+            # if value is True:
+            #     self.all_selected_points_idx_list.append(i)
             # all_selected_points_list
             if temp_flag is False:
                 if value is True:
                     temp_start_idx = i
                     temp_flag = True
             elif temp_flag is True:
-                if value is False:
+                if value is False or i == (len(restored_labeled_list) - 1):
+                    # selected points
                     temp_end_idx = i
                     temp_flag = False
                     temp_selected_points = self.points[temp_start_idx *
@@ -176,6 +184,7 @@ class DrawingBoard(Widget):
             self.canvas.add(self.all_connectionist_color_list[i])  # add Color
             self.canvas.add(temp_P)  # add Line
 
+
     def init_default(self):
         # add default cursors and correspond selected points
         self.all_selected_points_list = []
@@ -183,23 +192,21 @@ class DrawingBoard(Widget):
         self.all_cursor_list = []
         self.all_connectionist_color_list = []
         self.all_cursor_lines_list = []
-        for i in range(self.voc_length - 1):
-            # random colors
-            # start from 7 for brighter color space
-            r = random.randint(7, 11) / 10.0
-            g = random.randint(0, 11) / 10.0
-            b = random.randint(0, 11) / 10.0
-            self.all_connectionist_color_list.append(Color(r, g, b))
+        # cursor_range = 1 / (2 * voc_length - 1)
+        # cursor-i: range(2 * i * cursor_range, (2 * i + 1) * cursor_range)
+        cursor_range = 1.0 / (2 * self.voc_length - 1)
+        for i in range(self.voc_length):
+            self.all_connectionist_color_list.append(self.get_color())
             # start cursor
-            start_x = ((i + 1) / self.voc_length - 1.0 / 4.0 / self.voc_length)
+            start_x = 2 * i * cursor_range
             temp_start_cursor = StartCursor(
-                pos=(start_x * self.width, SlideBar().y_offset), color=[r, g, b])
+                pos=(start_x * self.width, SlideBar().y_offset), color=self.all_connectionist_color_list[i].rgb)
             self.add_widget(temp_start_cursor)
             self.all_cursor_list.append(temp_start_cursor)
             # end cursor
-            end_x = ((i + 1) / self.voc_length + 1.0 / 4.0 / self.voc_length)
+            end_x = (2 * i + 1) * cursor_range - 0.01   # -1: index start from 0
             temp_end_cursor = EndCursor(
-                pos=(end_x * self.width, SlideBar().y_offset), color=[r, g, b])
+                pos=(end_x * self.width, SlideBar().y_offset), color=self.all_connectionist_color_list[i].rgb)
             self.add_widget(temp_end_cursor)
             self.all_cursor_list.append(temp_end_cursor)
             # line between cursors
@@ -207,7 +214,7 @@ class DrawingBoard(Widget):
                 start_x * self.width + 10, SlideBar().y_offset + 5, end_x * self.width, SlideBar().y_offset + 5]
             temp_line = Line(points=temp_line_pos_list, width=5)
             self.all_cursor_lines_list.append(temp_line)
-            self.canvas.add(Color(r, g, b))  # add Color
+            self.canvas.add(self.all_connectionist_color_list[i])  # add Color
             self.canvas.add(temp_line)  # add Line
             # selected points
             start_point_idx = int(len(self.points) / 2 * start_x)
@@ -215,8 +222,8 @@ class DrawingBoard(Widget):
             temp_selected_points = self.points[start_point_idx *
                                                2: end_point_idx * 2]
             self.all_selected_points_list.append(temp_selected_points)
-            for selected_idx in range(start_point_idx, end_point_idx, 1):
-                self.all_selected_points_idx_list.append(selected_idx)
+            # for selected_idx in range(start_point_idx, end_point_idx, 1):
+            #     self.all_selected_points_idx_list.append(selected_idx)
 
         # record pointers pointing to canvas's Point in
         # 'self.all_canvas_point_list'
@@ -282,10 +289,10 @@ class DrawingBoard(Widget):
         # make sure the cursor's center_x value won't exceed neighbors
         # '+-10' is for foolproof
         if closest_cursor_id > 0 and closest_cursor_id < len(self.all_cursor_list) - 1:
-            if self.all_cursor_list[closest_cursor_id + 1].x < closest_cursor.center_x + 10:
-                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id + 1].x - 10
-            if self.all_cursor_list[closest_cursor_id - 1].x > closest_cursor.center_x - 10:
-                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id - 1].x + 10
+            if self.all_cursor_list[closest_cursor_id + 1].x < closest_cursor.center_x + 5:
+                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id + 1].x - 5
+            if self.all_cursor_list[closest_cursor_id - 1].x > closest_cursor.center_x - 5:
+                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id - 1].x + 5
         self.update_selected_points()
 
 
@@ -302,14 +309,13 @@ class AppEngine(FloatLayout):
 
     def __init__(self, *args, **kwargs):
         super(AppEngine, self).__init__(*args, **kwargs)
-
-        self.all_vocs_data = None
         self.vocs_amount = None
-        self.final_dict = None
+        self.result_dict = None
+        self.user_id = None
         self.vocs_idx_counter = None
-        self.user_id = 0
-        self.filename = ""
-        self.result_filename = ""
+        self.normalized_dirpath = None
+        self.result_dirpath = None
+        self.words_list = None
 
         # create content and add to the popup
         self.create_userid_textinput(title="User ID")
@@ -332,110 +338,126 @@ class AppEngine(FloatLayout):
 
     def init(self, user_id):
         self.lastButton.bind(on_press=self.lastButtonCallback)
-        self.saveButton.bind(on_press=self.saveButtonCallback)
         self.nextButton.bind(on_press=self.nextButtonCallback)
         self.user_id = user_id
+        self.vocs_idx_counter = -1
 
-        data_filepath = os.path.join(DATA_DIR_PATH, self.user_id)
-        self.result_filename = RESULT_FILE_PATH + self.user_id + ".json"
-        self.filename = TARGET_FILE_PATH + user_id + ".json"
-        if os.path.isfile(self.result_filename):  # first, check if labeled
+        self.normalized_dirpath = os.path.join(
+            NORMALIZED_DATA_DIR_PATH, user_id)
+        self.result_dirpath = os.path.join(LABELED_DATA_DIR_PATH, self.user_id)
+        data_dirpath = os.path.join(DATA_DIR_PATH, self.user_id)
+
+        if not os.path.exists(self.result_dirpath):
+            os.makedirs(self.result_dirpath)
+        if not os.path.exists(self.normalized_dirpath):
+            os.makedirs(self.normalized_dirpath)
+
+        if os.listdir(self.result_dirpath):  # first, check if labeled
             pass
-        elif os.path.isfile(self.filename):  # second, check if exist
+        elif os.listdir(self.normalized_dirpath):  # second, check if had normalized
             pass
-        elif fit_sphere(data_filepath):  # third, create it and check if successfull
-            pass
+        elif os.listdir(data_dirpath):  # check, origin voc if exist
+            if fit_sphere(data_dirpath, self.normalized_dirpath):  # forth, create it and check if successfull
+                pass
         else:
             self.create_userid_textinput(title="Try Again")
             return
 
-        with codecs.open(self.filename, 'r', 'utf-8-sig') as f:
-            json_data = json.load(f)
-        self.vocs_idx_counter = -1
-        self.all_vocs_data = json_data['data']
-        self.vocs_amount = len(json_data['data'])
-        # copy all data from original json
-        # all we need to do is mark each timestep with 'isL'(isLabeled)
-        # value
-        self.final_dict = json_data
+        for _, _, files in os.walk(self.normalized_dirpath):
+            self.words_list = files
+            self.vocs_amount = len(files)
 
         self.move_next_voc()
 
     def lastButtonCallback(self, instance):
-        # save labeled data into 'final_dict' before move next/ last word
         self.update_final_dict()
-
         # move to last word
         print ('!!!! Move to <Last> Word !!!!')
         self.move_last_voc()
 
-    def saveButtonCallback(self, instance):
-        with codecs.open(self.result_filename, 'w', 'utf-8') as out:
-            json.dump(self.final_dict, out,
-                      encoding="utf-8", ensure_ascii=False)
-        print ("Saved to file path::", self.result_filename)
-
-        # create content and add to the popup
-        content = Label(
-            text="Labeled data have saved to following path:\n" + self.result_filename,
-            text_size=(self.width, None),
-            halign='center',
-            font_size='32sp')
-        popup = Popup(title="Successully Saved",
-                      title_size='56sp',
-                      title_align='center',
-                      title_color=[1, 1, 1, 1],
-                      content=content,
-                      auto_dismiss=True,
-                      size_hint=(.65, .25))
-        # open the popup
-        popup.open()
-
     def nextButtonCallback(self, instance):
-        # save labeled data into 'final_dict' before move next/ last word
         self.update_final_dict()
-
         # move to next word
         print ('!!!! Move to <Next> Word !!!!')
         self.move_next_voc()
 
+    def get_current_target_filename(self):
+        if self.is_idx_valid(self.vocs_idx_counter):
+            filename = self.words_list[self.vocs_idx_counter]
+            result_filename = os.path.join(self.result_dirpath, filename)
+            normalized_filename = os.path.join(self.normalized_dirpath, filename)
+            target_filename = None
+            if os.path.isfile(result_filename):  # first, check if labeled
+                target_filename = result_filename
+            elif os.path.isfile(normalized_filename):  # second, check if had normalized
+                target_filename = normalized_filename
+            return target_filename
+        else:
+            return None
+
+    def update_final_dict(self):
+        target_filename = self.get_current_target_filename()
+        if target_filename is not None:
+            with codecs.open(target_filename, 'r', 'utf-8') as f:
+                raw_data = json.load(f)
+            self.result_dict = raw_data
+            for _, timestep_dict in enumerate(self.result_dict['data']):
+                # default value with False: not labeled
+                timestep_dict['isL'] = False
+            for labeled_idx in self.board.all_selected_points_idx_list:
+                # selected timestep idx with True: labeled
+                self.result_dict['data'][labeled_idx]['isL'] = True
+        else:
+            self.result_dict = None
+            return None
+
     def move_last_voc(self):
-        temp_idx = self.vocs_idx_counter - 1
-        if self.is_idx_valid(temp_idx):
-            self.vocs_idx_counter = temp_idx
+        if self.is_idx_valid(self.vocs_idx_counter):
+            # save immediately before move next/ last word
+            result_filename = os.path.join(self.result_dirpath, str(
+                self.words_list[self.vocs_idx_counter]))
+            with codecs.open(result_filename, 'w', 'utf-8') as out:
+                json.dump(self.result_dict, out,
+                          encoding="utf-8", ensure_ascii=False)
+            print ("Saved to file path::", result_filename)
+
+        if self.is_idx_valid(self.vocs_idx_counter - 1):
+            self.vocs_idx_counter = self.vocs_idx_counter - 1
 
             # restore data if the word had been label
             restored_labeled_list = self.restore_labeled_index()
 
             points, voc_length = self.read_voc_from_json(
-                self.all_vocs_data.keys()[self.vocs_idx_counter])
+                self.words_list[self.vocs_idx_counter])
             self.board.init_board(points, voc_length, restored_labeled_list)
         else:
             # end
             pass
 
     def move_next_voc(self):
-        temp_idx = self.vocs_idx_counter + 1
-        if self.is_idx_valid(temp_idx):
-            self.vocs_idx_counter = temp_idx
+        if self.is_idx_valid(self.vocs_idx_counter):
+            # save immediately before move next/ last word
+            result_filename = os.path.join(self.result_dirpath, str(
+                self.words_list[self.vocs_idx_counter]))
+            with codecs.open(result_filename, 'w', 'utf-8') as out:
+                json.dump(self.result_dict, out,
+                          encoding="utf-8", ensure_ascii=False)
+            print ("Saved to file path::", result_filename)
+
+        if self.is_idx_valid(self.vocs_idx_counter + 1):
+            self.vocs_idx_counter = self.vocs_idx_counter + 1
 
             # restore data if the word had been label
             restored_labeled_list = self.restore_labeled_index()
 
             points, voc_length = self.read_voc_from_json(
-                self.all_vocs_data.keys()[self.vocs_idx_counter])
+                self.words_list[self.vocs_idx_counter])
             self.board.init_board(points, voc_length, restored_labeled_list)
         else:
             # end
-            result_filename = RESULT_FILE_PATH + self.user_id + ".json"
-            with codecs.open(result_filename, 'w', 'utf-8') as out:
-                json.dump(self.final_dict, out,
-                          encoding="utf-8", ensure_ascii=False)
-            print ("Saved to file path::", result_filename)
-
             # create content and add to the popup
             content = ContentWithButton(
-                content_text="Many Thanks!\nLabeled data have saved to following path:\n" + result_filename, button_text='Close App')
+                content_text="Many Thanks!\nAll Labeled data have saved to following path:\n" + self.result_dirpath, button_text='Close App')
             popup = Popup(title="!!Congrat!!",
                           title_size='56sp',
                           title_align='center',
@@ -449,55 +471,66 @@ class AppEngine(FloatLayout):
     def is_idx_valid(self, index):
         return index >= 0 and index < self.vocs_amount
 
-    def update_final_dict(self):
-        if self.is_idx_valid(self.vocs_idx_counter):
-            finished_voc = self.final_dict['data'].keys()[
-                self.vocs_idx_counter]
-            voc_dict = self.final_dict['data'][finished_voc]
-            for _, timestep_dict in enumerate(voc_dict):
-                # default value with False: not labeled
-                timestep_dict['isL'] = False
-            for labeled_idx in self.board.all_selected_points_idx_list:
-                # selected timestep idx with True: labeled
-                voc_dict[labeled_idx]['isL'] = True
-
     def restore_labeled_index(self):
-        next_word = self.final_dict['data'].keys()[
-            self.vocs_idx_counter]
-        restored_labeled_list = []
-        if 'isL' in self.final_dict['data'][next_word][0]:
-            for timestep_dict in self.final_dict['data'][next_word]:
-                restored_labeled_list.append(timestep_dict['isL'])
-            return restored_labeled_list
+        target_filename = self.get_current_target_filename()
+
+        if target_filename is not None:
+            with codecs.open(target_filename, 'r', 'utf-8') as f:
+                raw_data = json.load(f)
+            restored_labeled_list = []
+            if 'isL' in raw_data['data'][0]:
+                for timestep_dict in raw_data['data']:
+                    restored_labeled_list.append(timestep_dict['isL'])
+                return restored_labeled_list
+            else:
+                return None
         else:
             return None
 
-    def read_voc_from_json(self, voc):
+    def read_voc_from_json(self, voc_filename):
         """
-        params: voc: string, the traget word
+        params: voc_filename: string, the filename of traget word
         return:
         """
-        print ("voc::", voc)
-        print ("length::", len(str(voc)))
-        self.word = str(voc)
-        self.word_idx = str(self.vocs_idx_counter)
-        voc_length = len(str(voc))
-        voc_pos_list = []
-        voc_timestep_list = self.all_vocs_data[voc]
-        for time_step_dict in voc_timestep_list:
-            # i: timestep in one voc as dict format
-            voc_pos_list.append(time_step_dict['pos'])
-        scaled_pos = np.array(voc_pos_list)
-        # normalization
-        x_amax = np.amax(scaled_pos[:, 0])
-        x_amin = np.amin(scaled_pos[:, 0])
-        x_range = x_amax - x_amin
-        x_scale = 1.0 / x_range
-        scaled_pos[:, 0] = scaled_pos[:, 0] * x_scale * self.board.width
-        scaled_pos[:, 1] = scaled_pos[:, 1] * x_scale * \
-            self.board.height + self.board.y_offset
+        target_filename = self.get_current_target_filename()
 
-        return scaled_pos.flatten().tolist(), voc_length
+        if target_filename is not None:
+            with codecs.open(target_filename, 'r', 'utf-8') as f:
+                raw_data = json.load(f)
+            voc = raw_data['word']
+            print ("voc::", voc)
+            print ("length::", len(str(voc)))
+            self.word = str(voc)
+            self.word_idx = str(self.vocs_idx_counter)
+            voc_length = len(str(voc))
+            voc_pos_list = []
+            for time_step_dict in raw_data['data']:
+                # i: timestep in one voc as dict format
+                voc_pos_list.append(time_step_dict['pos'])
+            scaled_pos = np.array(voc_pos_list)
+            # normalization
+            x_amax = np.amax(scaled_pos[:, 0])
+            x_amin = np.amin(scaled_pos[:, 0])
+            y_amax = np.amax(scaled_pos[:, 1])
+            y_amin = np.amin(scaled_pos[:, 1])
+            x_range = x_amax - x_amin
+            y_range = y_amax - y_amin
+            if x_range > y_range:
+                x_scale = 1.0 / x_range
+                scaled_pos[:, 0] = scaled_pos[:, 0] * x_scale * \
+                    self.board.width * 0.9 + self.board.width * 0.05
+                scaled_pos[:, 1] = scaled_pos[:, 1] * x_scale * \
+                    self.board.height + self.board.height * 0.1
+            else:
+                y_scale = 1.0 / y_range
+                scaled_pos[:, 0] = scaled_pos[:, 0] * y_scale * \
+                    self.board.width * 0.9 + self.board.width * 0.05
+                scaled_pos[:, 1] = scaled_pos[:, 1] * y_scale * \
+                    self.board.height * 0.8 + self.board.height * 0.1
+
+            return scaled_pos.flatten().tolist(), voc_length
+        else:
+            return None
 
 
 class LabelingApp(App):
