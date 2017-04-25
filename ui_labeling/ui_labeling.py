@@ -110,7 +110,7 @@ class DrawingBoard(Widget):
             self.init_restored(restored_labeled_list)
         else:
             self.init_default()
-        
+
         self.update_selected_points()
 
     def get_color(self):
@@ -184,7 +184,6 @@ class DrawingBoard(Widget):
             self.canvas.add(self.all_connectionist_color_list[i])  # add Color
             self.canvas.add(temp_P)  # add Line
 
-
     def init_default(self):
         # add default cursors and correspond selected points
         self.all_selected_points_list = []
@@ -204,7 +203,8 @@ class DrawingBoard(Widget):
             self.add_widget(temp_start_cursor)
             self.all_cursor_list.append(temp_start_cursor)
             # end cursor
-            end_x = (2 * i + 1) * cursor_range - 0.01   # -1: index start from 0
+            end_x = (2 * i + 1) * cursor_range - \
+                0.01   # -1: index start from 0
             temp_end_cursor = EndCursor(
                 pos=(end_x * self.width, SlideBar().y_offset), color=self.all_connectionist_color_list[i].rgb)
             self.add_widget(temp_end_cursor)
@@ -337,8 +337,8 @@ class AppEngine(FloatLayout):
         self.init(user_id)
 
     def init(self, user_id):
-        self.lastButton.bind(on_press=self.lastButtonCallback)
-        self.nextButton.bind(on_press=self.nextButtonCallback)
+        self.lastButton.bind(on_release=self.lastButtonCallback)
+        self.nextButton.bind(on_release=self.nextButtonCallback)
         self.user_id = user_id
         self.vocs_idx_counter = -1
 
@@ -347,17 +347,20 @@ class AppEngine(FloatLayout):
         self.result_dirpath = os.path.join(LABELED_DATA_DIR_PATH, self.user_id)
         data_dirpath = os.path.join(DATA_DIR_PATH, self.user_id)
 
-        if not os.path.exists(self.result_dirpath):
-            os.makedirs(self.result_dirpath)
         if not os.path.exists(self.normalized_dirpath):
             os.makedirs(self.normalized_dirpath)
+        if not os.path.exists(self.result_dirpath):
+            os.makedirs(self.result_dirpath)
+        if not os.path.exists(data_dirpath):
+            os.makedirs(data_dirpath)
 
         if os.listdir(self.result_dirpath):  # first, check if labeled
             pass
         elif os.listdir(self.normalized_dirpath):  # second, check if had normalized
             pass
         elif os.listdir(data_dirpath):  # check, origin voc if exist
-            if fit_sphere(data_dirpath, self.normalized_dirpath):  # forth, create it and check if successfull
+            # forth, create it and check if successfull
+            if fit_sphere(data_dirpath, self.normalized_dirpath):
                 pass
         else:
             self.create_userid_textinput(title="Try Again")
@@ -385,11 +388,13 @@ class AppEngine(FloatLayout):
         if self.is_idx_valid(self.vocs_idx_counter):
             filename = self.words_list[self.vocs_idx_counter]
             result_filename = os.path.join(self.result_dirpath, filename)
-            normalized_filename = os.path.join(self.normalized_dirpath, filename)
+            normalized_filename = os.path.join(
+                self.normalized_dirpath, filename)
             target_filename = None
             if os.path.isfile(result_filename):  # first, check if labeled
                 target_filename = result_filename
-            elif os.path.isfile(normalized_filename):  # second, check if had normalized
+            # second, check if had normalized
+            elif os.path.isfile(normalized_filename):
                 target_filename = normalized_filename
             return target_filename
         else:
