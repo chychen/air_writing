@@ -328,7 +328,7 @@ class AppEngine(FloatLayout):
                                  title_color=[1, 1, 1, 1],
                                  content=content,
                                  auto_dismiss=False,
-                                 size_hint=(.15, .2))
+                                 size_hint=(.15, .25))
         # open the popup
         self.popupUserID.open()
 
