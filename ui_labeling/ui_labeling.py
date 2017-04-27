@@ -126,7 +126,6 @@ class DrawingBoard(Widget):
         for i in range(self.voc_length):
             self.all_connectionist_color_list.append(self.get_color())
 
-        self.all_selected_points_idx_list = []
         self.all_selected_points_list = []
         self.all_cursor_list = []
         self.all_cursor_lines_list = []
@@ -135,9 +134,6 @@ class DrawingBoard(Widget):
         temp_end_idx = None
         counter = 0
         for i, value in enumerate(restored_labeled_list):
-            # all_selected_points_idx_list
-            # if value is True:
-            #     self.all_selected_points_idx_list.append(i)
             # all_selected_points_list
             if temp_flag is False:
                 if value is True:
@@ -152,13 +148,14 @@ class DrawingBoard(Widget):
                                                        2: temp_end_idx * 2]
                     self.all_selected_points_list.append(temp_selected_points)
                     # start cursor
-                    start_x = (temp_start_idx / len(restored_labeled_list))
+                    start_x = (float(temp_start_idx) /
+                               len(restored_labeled_list))
                     temp_start_cursor = StartCursor(
                         pos=(start_x * self.width, SlideBar().y_offset), color=self.all_connectionist_color_list[counter].rgb)
                     self.add_widget(temp_start_cursor)
                     self.all_cursor_list.append(temp_start_cursor)
                     # end cursor
-                    end_x = (temp_end_idx / len(restored_labeled_list))
+                    end_x = (float(temp_end_idx) / len(restored_labeled_list))
                     temp_end_cursor = EndCursor(
                         pos=(end_x * self.width, SlideBar().y_offset), color=self.all_connectionist_color_list[counter].rgb)
                     self.add_widget(temp_end_cursor)
@@ -187,7 +184,6 @@ class DrawingBoard(Widget):
     def init_default(self):
         # add default cursors and correspond selected points
         self.all_selected_points_list = []
-        self.all_selected_points_idx_list = []
         self.all_cursor_list = []
         self.all_connectionist_color_list = []
         self.all_cursor_lines_list = []
@@ -222,8 +218,6 @@ class DrawingBoard(Widget):
             temp_selected_points = self.points[start_point_idx *
                                                2: end_point_idx * 2]
             self.all_selected_points_list.append(temp_selected_points)
-            # for selected_idx in range(start_point_idx, end_point_idx, 1):
-            #     self.all_selected_points_idx_list.append(selected_idx)
 
         # record pointers pointing to canvas's Point in
         # 'self.all_canvas_point_list'
@@ -260,7 +254,11 @@ class DrawingBoard(Widget):
             canvas_selected_line.points = self.points[startPtIdx *
                                                       2: endPtIdx * 2]
             for selected_idx in range(startPtIdx, endPtIdx, 1):
-                self.all_selected_points_idx_list.append(selected_idx)
+                # TODO: BUGS!!!!!!!!!!!!!!! walk around by > 600 or not
+                if len(self.points) > 600:
+                    self.all_selected_points_idx_list.append(selected_idx - 1)
+                else:
+                    self.all_selected_points_idx_list.append(selected_idx)
 
     def touch_action(self, touch):
         # select the cloest cursor to modify its center_x
@@ -268,7 +266,7 @@ class DrawingBoard(Widget):
         closest_cursor_id = -1
         min_dist = sys.maxint
         for i, cursor in enumerate(self.all_cursor_list):
-            temp_dist = abs(touch.x - cursor.x)
+            temp_dist = abs(touch.x - cursor.center_x)
             if temp_dist < min_dist:
                 min_dist = temp_dist
                 closest_cursor = cursor
@@ -287,12 +285,12 @@ class DrawingBoard(Widget):
                     closest_cursor_id / 2)].points = temp
 
         # make sure the cursor's center_x value won't exceed neighbors
-        # '+-10' is for foolproof
+        # '+-5' is for foolproof
         if closest_cursor_id > 0 and closest_cursor_id < len(self.all_cursor_list) - 1:
-            if self.all_cursor_list[closest_cursor_id + 1].x < closest_cursor.center_x + 5:
-                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id + 1].x - 5
-            if self.all_cursor_list[closest_cursor_id - 1].x > closest_cursor.center_x - 5:
-                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id - 1].x + 5
+            if self.all_cursor_list[closest_cursor_id + 1].center_x < closest_cursor.center_x + 5:
+                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id + 1].center_x - 5
+            if self.all_cursor_list[closest_cursor_id - 1].center_x > closest_cursor.center_x - 5:
+                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id - 1].center_x + 5
         self.update_selected_points()
 
 
@@ -323,12 +321,12 @@ class AppEngine(FloatLayout):
     def create_userid_textinput(self, title):
         content = UserIDTextInput(on_enter=self.on_enter)
         self.popupUserID = Popup(title=title,
-                                 title_size='48sp',
+                                 title_size='40sp',
                                  title_align='center',
                                  title_color=[1, 1, 1, 1],
                                  content=content,
                                  auto_dismiss=False,
-                                 size_hint=(.15, .2))
+                                 size_hint=(.15, .25))
         # open the popup
         self.popupUserID.open()
 
@@ -447,7 +445,6 @@ class AppEngine(FloatLayout):
             with codecs.open(result_filename, 'w', 'utf-8') as out:
                 json.dump(self.result_dict, out,
                           encoding="utf-8", ensure_ascii=False)
-            print ("Saved to file path::", result_filename)
 
         if self.is_idx_valid(self.vocs_idx_counter + 1):
             self.vocs_idx_counter = self.vocs_idx_counter + 1
@@ -483,14 +480,14 @@ class AppEngine(FloatLayout):
             with codecs.open(target_filename, 'r', 'utf-8') as f:
                 raw_data = json.load(f)
             restored_labeled_list = []
-            if 'isL' in raw_data['data'][0]:
+            if 'isL' in raw_data['data'][0]:  # check key 'isL' exist
                 for timestep_dict in raw_data['data']:
                     restored_labeled_list.append(timestep_dict['isL'])
-                return restored_labeled_list
+                return restored_labeled_list  # init board by init_restore
             else:
-                return None
+                return None  # init board init_default
         else:
-            return None
+            return None  # init board init_default
 
     def read_voc_from_json(self, voc_filename):
         """
@@ -504,7 +501,6 @@ class AppEngine(FloatLayout):
                 raw_data = json.load(f)
             voc = raw_data['word']
             print ("voc::", voc)
-            print ("length::", len(str(voc)))
             self.word = str(voc)
             self.word_idx = str(self.vocs_idx_counter)
             voc_length = len(str(voc))
