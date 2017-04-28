@@ -150,19 +150,21 @@ class DrawingBoard(Widget):
                     # start cursor
                     start_x = (float(temp_start_idx) /
                                len(restored_labeled_list))
+                    # -5: because the cursor triangle width is 10 in canvas, -5 to get center_x
                     temp_start_cursor = StartCursor(
-                        pos=(start_x * self.width, SlideBar().y_offset), color=self.all_connectionist_color_list[counter].rgb)
+                        pos=(start_x * self.width - 5, SlideBar().y_offset), color=self.all_connectionist_color_list[counter].rgb)
                     self.add_widget(temp_start_cursor)
                     self.all_cursor_list.append(temp_start_cursor)
                     # end cursor
                     end_x = (float(temp_end_idx) / len(restored_labeled_list))
+                    # -5: because the cursor triangle width is 10 in canvas, -5 to get center_x
                     temp_end_cursor = EndCursor(
-                        pos=(end_x * self.width, SlideBar().y_offset), color=self.all_connectionist_color_list[counter].rgb)
+                        pos=(end_x * self.width - 5, SlideBar().y_offset), color=self.all_connectionist_color_list[counter].rgb)
                     self.add_widget(temp_end_cursor)
                     self.all_cursor_list.append(temp_end_cursor)
                     # line between cursors
                     temp_line_pos_list = [
-                        start_x * self.width + 10, SlideBar().y_offset + 5, end_x * self.width, SlideBar().y_offset + 5]
+                        start_x * self.width, SlideBar().y_offset + 5, end_x * self.width - 5, SlideBar().y_offset + 5]
                     temp_line = Line(points=temp_line_pos_list, width=5)
                     self.all_cursor_lines_list.append(temp_line)
                     self.canvas.add(
@@ -195,19 +197,19 @@ class DrawingBoard(Widget):
             # start cursor
             start_x = 2 * i * cursor_range
             temp_start_cursor = StartCursor(
-                pos=(start_x * self.width, SlideBar().y_offset), color=self.all_connectionist_color_list[i].rgb)
+                pos=(start_x * self.width - 5, SlideBar().y_offset), color=self.all_connectionist_color_list[i].rgb)
             self.add_widget(temp_start_cursor)
             self.all_cursor_list.append(temp_start_cursor)
             # end cursor
             end_x = (2 * i + 1) * cursor_range - \
                 0.01   # -1: index start from 0
             temp_end_cursor = EndCursor(
-                pos=(end_x * self.width, SlideBar().y_offset), color=self.all_connectionist_color_list[i].rgb)
+                pos=(end_x * self.width - 5, SlideBar().y_offset), color=self.all_connectionist_color_list[i].rgb)
             self.add_widget(temp_end_cursor)
             self.all_cursor_list.append(temp_end_cursor)
             # line between cursors
             temp_line_pos_list = [
-                start_x * self.width + 10, SlideBar().y_offset + 5, end_x * self.width, SlideBar().y_offset + 5]
+                start_x * self.width, SlideBar().y_offset + 5, end_x * self.width - 5, SlideBar().y_offset + 5]
             temp_line = Line(points=temp_line_pos_list, width=5)
             self.all_cursor_lines_list.append(temp_line)
             self.canvas.add(self.all_connectionist_color_list[i])  # add Color
@@ -254,11 +256,7 @@ class DrawingBoard(Widget):
             canvas_selected_line.points = self.points[startPtIdx *
                                                       2: endPtIdx * 2]
             for selected_idx in range(startPtIdx, endPtIdx, 1):
-                # TODO: BUGS!!!!!!!!!!!!!!! walk around by > 600 or not
-                if len(self.points) > 600:
-                    self.all_selected_points_idx_list.append(selected_idx - 1)
-                else:
-                    self.all_selected_points_idx_list.append(selected_idx)
+                self.all_selected_points_idx_list.append(selected_idx)
 
     def touch_action(self, touch):
         # select the cloest cursor to modify its center_x
