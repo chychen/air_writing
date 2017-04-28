@@ -23,6 +23,7 @@ import kivy
 kivy.require('1.8.0')
 Config.set('graphics', 'width', '1800')
 Config.set('graphics', 'height', '1000')
+Config.set('input', 'mouse', 'mouse, disable_multitouch')
 from preprocessing.sphere_fitting import fit_sphere
 
 
@@ -150,21 +151,19 @@ class DrawingBoard(Widget):
                     # start cursor
                     start_x = (float(temp_start_idx) /
                                len(restored_labeled_list))
-                    # -5: because the cursor triangle width is 10 in canvas, -5 to get center_x
                     temp_start_cursor = StartCursor(
                         pos=(start_x * self.width - 5, SlideBar().y_offset), color=self.all_connectionist_color_list[counter].rgb)
                     self.add_widget(temp_start_cursor)
                     self.all_cursor_list.append(temp_start_cursor)
                     # end cursor
                     end_x = (float(temp_end_idx) / len(restored_labeled_list))
-                    # -5: because the cursor triangle width is 10 in canvas, -5 to get center_x
                     temp_end_cursor = EndCursor(
                         pos=(end_x * self.width - 5, SlideBar().y_offset), color=self.all_connectionist_color_list[counter].rgb)
                     self.add_widget(temp_end_cursor)
                     self.all_cursor_list.append(temp_end_cursor)
                     # line between cursors
                     temp_line_pos_list = [
-                        start_x * self.width, SlideBar().y_offset + 5, end_x * self.width - 5, SlideBar().y_offset + 5]
+                        start_x * self.width, SlideBar().y_offset + 5, end_x * self.width, SlideBar().y_offset + 5]
                     temp_line = Line(points=temp_line_pos_list, width=5)
                     self.all_cursor_lines_list.append(temp_line)
                     self.canvas.add(
@@ -209,7 +208,7 @@ class DrawingBoard(Widget):
             self.all_cursor_list.append(temp_end_cursor)
             # line between cursors
             temp_line_pos_list = [
-                start_x * self.width, SlideBar().y_offset + 5, end_x * self.width - 5, SlideBar().y_offset + 5]
+                start_x * self.width, SlideBar().y_offset + 5, end_x * self.width, SlideBar().y_offset + 5]
             temp_line = Line(points=temp_line_pos_list, width=5)
             self.all_cursor_lines_list.append(temp_line)
             self.canvas.add(self.all_connectionist_color_list[i])  # add Color
@@ -242,6 +241,8 @@ class DrawingBoard(Widget):
             self.touch_action(touch)
 
     def get_cursor_matched_point_idx(self, cursor):
+        if cursor.center_x > self.width - 5:
+            cursor.center_x = self.width
         normalized_x = cursor.center_x / self.width
         pointsLength = len(self.points) / 2
         return int(normalized_x * pointsLength)
@@ -263,33 +264,54 @@ class DrawingBoard(Widget):
         closest_cursor = None
         closest_cursor_id = -1
         min_dist = sys.maxint
-        for i, cursor in enumerate(self.all_cursor_list):
-            temp_dist = abs(touch.x - cursor.center_x)
-            if temp_dist < min_dist:
-                min_dist = temp_dist
-                closest_cursor = cursor
-                closest_cursor_id = i
-        if touch.x < self.width and touch.y < self.height:
-            closest_cursor.center_x = touch.x
-            temp = self.all_cursor_lines_list[int(
-                closest_cursor_id / 2)].points
-            if closest_cursor_id % 2 is 0:
-                temp[0] = touch.x + 5  # start cursor
-                self.all_cursor_lines_list[int(
-                    closest_cursor_id / 2)].points = temp
-            elif closest_cursor_id % 2 is 1:
-                temp[2] = touch.x - 5  # end cursor
-                self.all_cursor_lines_list[int(
-                    closest_cursor_id / 2)].points = temp
+        if touch.x > self.all_cursor_list[-1].center_x and touch.x < self.width:
+            closest_cursor = self.all_cursor_list[-1]
+            closest_cursor_id = len(self.all_cursor_list) - 1
+        elif touch.x < self.all_cursor_list[0].center_x and touch.x > 0:
+            closest_cursor = self.all_cursor_list[0]
+            closest_cursor_id = 0
+        else:
+            for i in range(len(self.all_cursor_list) - 1):
+                if touch.x > self.all_cursor_list[i].center_x and touch.x < self.all_cursor_list[i + 1].center_x:
+                    # select closest start cursor
+                    if touch.button == 'left':
+                        if i%2 == 0:
+                            closest_cursor = self.all_cursor_list[i]
+                            closest_cursor_id = i
+                        else:
+                            closest_cursor = self.all_cursor_list[i+1]
+                            closest_cursor_id = i + 1
+                    # select closest start cursor
+                    elif touch.button == 'right':
+                        if i%2 == 1:
+                            closest_cursor = self.all_cursor_list[i]
+                            closest_cursor_id = i
+                        else:
+                            closest_cursor = self.all_cursor_list[i+1]
+                            closest_cursor_id = i + 1
 
-        # make sure the cursor's center_x value won't exceed neighbors
-        # '+-5' is for foolproof
-        if closest_cursor_id > 0 and closest_cursor_id < len(self.all_cursor_list) - 1:
-            if self.all_cursor_list[closest_cursor_id + 1].center_x < closest_cursor.center_x + 5:
-                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id + 1].center_x - 5
-            if self.all_cursor_list[closest_cursor_id - 1].center_x > closest_cursor.center_x - 5:
-                closest_cursor.center_x = self.all_cursor_list[closest_cursor_id - 1].center_x + 5
-        self.update_selected_points()
+        if closest_cursor is not None:
+            if touch.x < self.width and touch.y < self.height:
+                closest_cursor.center_x = touch.x
+                temp = self.all_cursor_lines_list[int(
+                    closest_cursor_id / 2)].points
+                if closest_cursor_id % 2 is 0:
+                    temp[0] = touch.x
+                    self.all_cursor_lines_list[int(
+                        closest_cursor_id / 2)].points = temp
+                elif closest_cursor_id % 2 is 1:
+                    temp[2] = touch.x
+                    self.all_cursor_lines_list[int(
+                        closest_cursor_id / 2)].points = temp
+
+            # make sure the cursor's center_x value won't exceed neighbors
+            # '+-5' is for foolproof
+            if closest_cursor_id > 0 and closest_cursor_id < len(self.all_cursor_list) - 1:
+                if self.all_cursor_list[closest_cursor_id + 1].center_x < closest_cursor.center_x + 5:
+                    closest_cursor.center_x = self.all_cursor_list[closest_cursor_id + 1].center_x - 5
+                if self.all_cursor_list[closest_cursor_id - 1].center_x > closest_cursor.center_x - 5:
+                    closest_cursor.center_x = self.all_cursor_list[closest_cursor_id - 1].center_x + 5
+            self.update_selected_points()
 
 
 class AppEngine(FloatLayout):
