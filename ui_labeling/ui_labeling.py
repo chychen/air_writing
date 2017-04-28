@@ -200,8 +200,7 @@ class DrawingBoard(Widget):
             self.add_widget(temp_start_cursor)
             self.all_cursor_list.append(temp_start_cursor)
             # end cursor
-            end_x = (2 * i + 1) * cursor_range - \
-                0.01   # -1: index start from 0
+            end_x = (2 * i + 1) * cursor_range
             temp_end_cursor = EndCursor(
                 pos=(end_x * self.width - 5, SlideBar().y_offset), color=self.all_connectionist_color_list[i].rgb)
             self.add_widget(temp_end_cursor)
