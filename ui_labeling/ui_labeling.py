@@ -94,6 +94,8 @@ class DrawingBoard(Widget):
                                      Color(.3, .3, 1),
                                      Color(1, .1, 1),
                                      Color(1, 1, .3)]
+        self.closest_cursor = None
+        self.closest_cursor_id = None
 
     def init_board(self, points, voc_length, restored_labeled_list=None):
         self.isInit = True
@@ -232,12 +234,12 @@ class DrawingBoard(Widget):
     def on_touch_move(self, touch):
         super(DrawingBoard, self).on_touch_down(touch)
         if self.isInit:
-            self.touch_action(touch)
+            self.touch_action(touch, mode='on_touch_move')
 
     def on_touch_down(self, touch):
         super(DrawingBoard, self).on_touch_down(touch)
         if self.isInit:
-            self.touch_action(touch)
+            self.touch_action(touch, mode='on_touch_down')
 
     def get_cursor_matched_point_idx(self, cursor):
         if cursor.center_x > self.width - 5:
@@ -258,59 +260,62 @@ class DrawingBoard(Widget):
             for selected_idx in range(startPtIdx, endPtIdx, 1):
                 self.all_selected_points_idx_list.append(selected_idx)
 
-    def touch_action(self, touch):
-        # select the cloest cursor to modify its center_x
-        closest_cursor = None
-        closest_cursor_id = -1
-        min_dist = sys.maxint
-        if touch.x > self.all_cursor_list[-1].center_x and touch.x < self.width:
-            closest_cursor = self.all_cursor_list[-1]
-            closest_cursor_id = len(self.all_cursor_list) - 1
-        elif touch.x < self.all_cursor_list[0].center_x and touch.x > 0:
-            closest_cursor = self.all_cursor_list[0]
-            closest_cursor_id = 0
-        else:
-            for i in range(len(self.all_cursor_list) - 1):
-                if touch.x > self.all_cursor_list[i].center_x and touch.x < self.all_cursor_list[i + 1].center_x:
-                    # select closest start cursor
-                    if touch.button == 'left':
-                        if i%2 == 0:
-                            closest_cursor = self.all_cursor_list[i]
-                            closest_cursor_id = i
-                        else:
-                            closest_cursor = self.all_cursor_list[i+1]
-                            closest_cursor_id = i + 1
-                    # select closest start cursor
-                    elif touch.button == 'right':
-                        if i%2 == 1:
-                            closest_cursor = self.all_cursor_list[i]
-                            closest_cursor_id = i
-                        else:
-                            closest_cursor = self.all_cursor_list[i+1]
-                            closest_cursor_id = i + 1
+    def touch_action(self, touch, mode):
+        if mode == 'on_touch_down':
+            # select the cloest cursor to modify its center_x
+            self.closest_cursor = None
+            self.closest_cursor_id = -1
+            if touch.x > self.all_cursor_list[-1].center_x and touch.x < self.width:
+                self.closest_cursor = self.all_cursor_list[-1]
+                self.closest_cursor_id = len(self.all_cursor_list) - 1
+            elif touch.x < self.all_cursor_list[0].center_x and touch.x > 0:
+                self.closest_cursor = self.all_cursor_list[0]
+                self.closest_cursor_id = 0
+            else:
+                for i in range(len(self.all_cursor_list) - 1):
+                    if touch.x > self.all_cursor_list[i].center_x and touch.x < self.all_cursor_list[i + 1].center_x:
+                        # select closest start cursor
+                        if touch.button == 'left':
+                            if i % 2 == 0:
+                                self.closest_cursor = self.all_cursor_list[i]
+                                self.closest_cursor_id = i
+                            else:
+                                self.closest_cursor = self.all_cursor_list[i + 1]
+                                self.closest_cursor_id = i + 1
+                        # select closest start cursor
+                        elif touch.button == 'right':
+                            if i % 2 == 1:
+                                self.closest_cursor = self.all_cursor_list[i]
+                                self.closest_cursor_id = i
+                            else:
+                                self.closest_cursor = self.all_cursor_list[i + 1]
+                                self.closest_cursor_id = i + 1
 
-        if closest_cursor is not None:
+        if self.closest_cursor is not None:
             if touch.x < self.width and touch.y < self.height:
-                closest_cursor.center_x = touch.x
-                temp = self.all_cursor_lines_list[int(
-                    closest_cursor_id / 2)].points
-                if closest_cursor_id % 2 is 0:
-                    temp[0] = touch.x
-                    self.all_cursor_lines_list[int(
-                        closest_cursor_id / 2)].points = temp
-                elif closest_cursor_id % 2 is 1:
-                    temp[2] = touch.x
-                    self.all_cursor_lines_list[int(
-                        closest_cursor_id / 2)].points = temp
+                self.closest_cursor.center_x = touch.x
 
-            # make sure the cursor's center_x value won't exceed neighbors
-            # '+-5' is for foolproof
-            if closest_cursor_id > 0 and closest_cursor_id < len(self.all_cursor_list) - 1:
-                if self.all_cursor_list[closest_cursor_id + 1].center_x < closest_cursor.center_x + 5:
-                    closest_cursor.center_x = self.all_cursor_list[closest_cursor_id + 1].center_x - 5
-                if self.all_cursor_list[closest_cursor_id - 1].center_x > closest_cursor.center_x - 5:
-                    closest_cursor.center_x = self.all_cursor_list[closest_cursor_id - 1].center_x + 5
-            self.update_selected_points()
+        # make sure the cursor's center_x value won't exceed neighbors
+        # '+-5' is for foolproof
+        if self.closest_cursor is not None:
+            if self.closest_cursor_id > 0 and self.closest_cursor_id < len(self.all_cursor_list) - 1:
+                for any_i, any_cursor in enumerate(self.all_cursor_list):
+                    if any_i > self.closest_cursor_id and any_cursor.center_x < self.closest_cursor.center_x + 5:
+                        any_cursor.center_x = self.closest_cursor.center_x + 5 * (any_i-self.closest_cursor_id)
+                    if any_i < self.closest_cursor_id and any_cursor.center_x > self.closest_cursor.center_x - 5:
+                        any_cursor.center_x = self.closest_cursor.center_x - 5 * (self.closest_cursor_id - any_i)
+
+        # update all lins bwtween cursors
+        for any_i, _ in enumerate(self.all_cursor_list):
+            if any_i % 2 == 0:
+                temp = self.all_cursor_lines_list[int(any_i/2)].points
+                temp[0] = self.all_cursor_list[any_i].center_x
+                temp[2] = self.all_cursor_list[any_i + 1].center_x
+                self.all_cursor_lines_list[int(any_i/2)].points = temp
+                
+
+        self.update_selected_points()
+
 
 
 class AppEngine(FloatLayout):
@@ -359,26 +364,31 @@ class AppEngine(FloatLayout):
         self.user_id = user_id
         self.vocs_idx_counter = -1
 
-        self.normalized_dirpath = os.path.join(
-            NORMALIZED_DATA_DIR_PATH, user_id)
-        self.result_dirpath = os.path.join(LABELED_DATA_DIR_PATH, self.user_id)
-        data_dirpath = os.path.join(DATA_DIR_PATH, self.user_id)
+        if self.user_id != '':
+            self.normalized_dirpath = os.path.join(
+                NORMALIZED_DATA_DIR_PATH, user_id)
+            self.result_dirpath = os.path.join(
+                LABELED_DATA_DIR_PATH, self.user_id)
+            data_dirpath = os.path.join(DATA_DIR_PATH, self.user_id)
 
-        if not os.path.exists(self.normalized_dirpath):
-            os.makedirs(self.normalized_dirpath)
-        if not os.path.exists(self.result_dirpath):
-            os.makedirs(self.result_dirpath)
-        if not os.path.exists(data_dirpath):
-            os.makedirs(data_dirpath)
+            if not os.path.exists(self.normalized_dirpath):
+                os.makedirs(self.normalized_dirpath)
+            if not os.path.exists(self.result_dirpath):
+                os.makedirs(self.result_dirpath)
+            if not os.path.exists(data_dirpath):
+                os.makedirs(data_dirpath)
 
-        if os.listdir(self.result_dirpath):  # first, check if labeled
-            pass
-        elif os.listdir(self.normalized_dirpath):  # second, check if had normalized
-            pass
-        elif os.listdir(data_dirpath):  # check, origin voc if exist
-            # forth, create it and check if successfull
-            if fit_sphere(data_dirpath, self.normalized_dirpath):
+            if os.listdir(self.result_dirpath):  # first, check if labeled
                 pass
+            elif os.listdir(self.normalized_dirpath):  # second, check if had normalized
+                pass
+            elif os.listdir(data_dirpath):  # check, origin voc if exist
+                # forth, create it and check if successfull
+                if fit_sphere(data_dirpath, self.normalized_dirpath):
+                    pass
+            else:
+                self.create_userid_textinput(title="Try Again")
+                return
         else:
             self.create_userid_textinput(title="Try Again")
             return
