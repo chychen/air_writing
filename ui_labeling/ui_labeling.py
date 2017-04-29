@@ -384,7 +384,7 @@ class AppEngine(FloatLayout):
             return
 
         for _, _, files in os.walk(self.normalized_dirpath):
-            self.words_list = files
+            self.words_list = sorted(files)
             self.vocs_amount = len(files)
 
         self.move_next_voc()
