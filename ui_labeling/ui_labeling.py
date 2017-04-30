@@ -309,7 +309,7 @@ class DrawingBoard(Widget):
 
     def touch_action(self, touch, mode):
         if mode == 'on_touch_down':
-            # select the cloest cursor and its index to modify its center_x 
+            # select the cloest cursor and its index to modify its center_x
             self.closest_cursor = None
             self.closest_cursor_id = -1
             if touch.x > self.all_cursor_list[-1].center_x and touch.x < self.width:
@@ -337,7 +337,7 @@ class DrawingBoard(Widget):
                             else:
                                 self.closest_cursor = self.all_cursor_list[i + 1]
                                 self.closest_cursor_id = i + 1
-        
+
         # update cursor's position
         if self.closest_cursor is not None:
             if touch.x < self.width and touch.y < self.height:
@@ -386,7 +386,7 @@ class AppEngine(FloatLayout):
         self.result_dirpath = None
         self.words_list = None
         self.vocs_idx_counter = None
-        
+
         # the labeled word's data
         self.result_dict = None
 
@@ -513,10 +513,7 @@ class AppEngine(FloatLayout):
         if self.is_idx_valid(self.vocs_idx_counter - 1):
             self.vocs_idx_counter = self.vocs_idx_counter - 1
 
-            # restore data if the word had been label
-            restored_labeled_list = self.restore_labeled_index()
-
-            points, voc_length = self.read_voc_from_json(
+            points, voc_length, restored_labeled_list = self.read_voc_from_json(
                 self.words_list[self.vocs_idx_counter])
             self.board.init_board(points, voc_length, restored_labeled_list)
         else:
@@ -535,10 +532,7 @@ class AppEngine(FloatLayout):
         if self.is_idx_valid(self.vocs_idx_counter + 1):
             self.vocs_idx_counter = self.vocs_idx_counter + 1
 
-            # restore data if the word had been label
-            restored_labeled_list = self.restore_labeled_index()
-
-            points, voc_length = self.read_voc_from_json(
+            points, voc_length, restored_labeled_list = self.read_voc_from_json(
                 self.words_list[self.vocs_idx_counter])
             self.board.init_board(points, voc_length, restored_labeled_list)
         else:
@@ -559,28 +553,15 @@ class AppEngine(FloatLayout):
     def is_idx_valid(self, index):
         return index >= 0 and index < self.vocs_amount
 
-    def restore_labeled_index(self):
-        target_filename = self.get_current_target_filename()
-
-        if target_filename is not None:
-            with codecs.open(target_filename, 'r', 'utf-8') as f:
-                raw_data = json.load(f)
-            restored_labeled_list = []
-            if 'isL' in raw_data['data'][0]:  # check key 'isL' exist
-                for timestep_dict in raw_data['data']:
-                    restored_labeled_list.append(timestep_dict['isL'])
-                return restored_labeled_list  # init board by init_restore
-            else:
-                return None  # init board init_default
-        else:
-            return None  # init board init_default
-
     def read_voc_from_json(self, voc_filename):
         """
         params: voc_filename: string, the filename of traget word
-        return:
+        return: scaled_pos: list of trajectories' posistions, read from file and normalized
+        return: voc_length: integer, length of target vocabulary
+        return: restored_labeled_list: list of boolean value, recording the index of labeled positions. if None, init by default.
         """
         target_filename = self.get_current_target_filename()
+        restored_labeled_list = None
 
         if target_filename is not None:
             with codecs.open(target_filename, 'r', 'utf-8') as f:
@@ -591,8 +572,14 @@ class AppEngine(FloatLayout):
             self.word_idx = str(self.vocs_idx_counter)
             voc_length = len(str(voc))
             voc_pos_list = []
+            restored_labeled_list = []
+            if 'isL' in raw_data['data'][0]:  # check key 'isL' exist
+                for timestep_dict in raw_data['data']:
+                    restored_labeled_list.append(timestep_dict['isL'])
+            else:
+                restored_labeled_list = None
+
             for time_step_dict in raw_data['data']:
-                # i: timestep in one voc as dict format
                 voc_pos_list.append(time_step_dict['pos'])
             scaled_pos = np.array(voc_pos_list)
             # normalization
@@ -615,7 +602,7 @@ class AppEngine(FloatLayout):
                 scaled_pos[:, 1] = scaled_pos[:, 1] * y_scale * \
                     self.board.height * 0.8 + self.board.height * 0.1
 
-            return scaled_pos.flatten().tolist(), voc_length
+            return scaled_pos.flatten().tolist(), voc_length, restored_labeled_list
         else:
             return None
 
