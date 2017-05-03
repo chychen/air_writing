@@ -576,7 +576,11 @@ class AppEngine(FloatLayout):
             voc_pos_list = []
             restored_labeled_list = []
             if 'labeled_idx_list' in raw_data:  # check key 'labeled_idx_list' exist
-                restored_labeled_list = raw_data['labeled_idx_list']
+                # asset voc_length == len(raw_data['labeled_idx_list'])
+                if voc_length != len(raw_data['labeled_idx_list']):
+                    restored_labeled_list = None # then data will be re-init by deault
+                else:
+                    restored_labeled_list = raw_data['labeled_idx_list']
             else:
                 restored_labeled_list = None
 
