@@ -128,7 +128,7 @@ class DrawingBoard(Widget):
         """
         params: points: list of trajectories' posistions, read from file
         params: voc_length: integer, length of target vocabulary
-        params: restored_labeled_list: list of boolean value, recording the index of labeled positions. if None, init by default.
+        params: restored_labeled_list: list of labeled indexes list, recording the index of selected points.
         """
         self.isInit = True
         self.points = points
@@ -156,56 +156,54 @@ class DrawingBoard(Widget):
     def init_restored(self, restored_labeled_list):
         """
         restore cursors and selected points on canvas
-        params: restored_labeled_list: list of boolean value, recording the index of labeled positions.
+        params: restored_labeled_list: list of labeled indexes list, recording the index of selected points.
         """
         self.all_connectionist_color_list = []
-        for i in range(self.voc_length):
+        for _ in range(self.voc_length):
             self.all_connectionist_color_list.append(self.get_color())
 
         self.all_selected_points_list = []
         self.all_cursor_list = []
         self.all_cursor_lines_list = []
-        temp_flag = False
         temp_start_idx = None
         temp_end_idx = None
         counter = 0
-        for i, value in enumerate(restored_labeled_list):
-            # all_selected_points_list
-            if temp_flag is False:
-                if value is True:
-                    temp_start_idx = i
-                    temp_flag = True
-            elif temp_flag is True:
-                if value is False or i == (len(restored_labeled_list) - 1):
-                    # selected points
-                    temp_end_idx = i
-                    temp_flag = False
-                    temp_selected_points = self.points[temp_start_idx *
-                                                       2: temp_end_idx * 2]
-                    self.all_selected_points_list.append(temp_selected_points)
-                    # start cursor
-                    start_x = (float(temp_start_idx) /
-                               len(restored_labeled_list))
-                    temp_start_cursor = Cursor(
-                        pos=(start_x * self.width - 5, SlideBar().y_offset), color=self.all_connectionist_color_list[counter].rgb)
-                    self.add_widget(temp_start_cursor)
-                    self.all_cursor_list.append(temp_start_cursor)
-                    # end cursor
-                    end_x = (float(temp_end_idx) / len(restored_labeled_list))
-                    temp_end_cursor = Cursor(
-                        pos=(end_x * self.width - 5, SlideBar().y_offset), color=self.all_connectionist_color_list[counter].rgb)
-                    self.add_widget(temp_end_cursor)
-                    self.all_cursor_list.append(temp_end_cursor)
-                    # line between cursors
-                    temp_line_pos_list = [
-                        start_x * self.width, SlideBar().y_offset + 5, end_x * self.width, SlideBar().y_offset + 5]
-                    temp_line = Line(points=temp_line_pos_list, width=5)
-                    self.all_cursor_lines_list.append(temp_line)
-                    self.canvas.add(
-                        self.all_connectionist_color_list[counter])  # add Color
-                    self.canvas.add(temp_line)  # add Line
-                    # color index
-                    counter += 1
+        for _, one_labeled_list in enumerate(restored_labeled_list):
+            if len(one_labeled_list) > 0:
+                # [temp_start_idx, temp_end_idx)
+                temp_start_idx = one_labeled_list[0]
+                temp_end_idx = one_labeled_list[-1] + 1
+            else:
+                temp_start_idx = int(len(self.points) / 2)
+                temp_end_idx = int(len(self.points) / 2)
+
+            # selected points
+            temp_selected_points = self.points[temp_start_idx *
+                                               2: temp_end_idx * 2]
+            self.all_selected_points_list.append(temp_selected_points)
+            # start cursor
+            start_x = (float(temp_start_idx) /
+                       (len(self.points) / 2))
+            temp_start_cursor = Cursor(
+                pos=(start_x * self.width - 5, SlideBar().y_offset), color=self.all_connectionist_color_list[counter].rgb)
+            self.add_widget(temp_start_cursor)
+            self.all_cursor_list.append(temp_start_cursor)
+            # end cursor
+            end_x = (float(temp_end_idx) / (len(self.points) / 2))
+            temp_end_cursor = Cursor(
+                pos=(end_x * self.width - 5, SlideBar().y_offset), color=self.all_connectionist_color_list[counter].rgb)
+            self.add_widget(temp_end_cursor)
+            self.all_cursor_list.append(temp_end_cursor)
+            # line between cursors
+            temp_line_pos_list = [
+                start_x * self.width, SlideBar().y_offset + 5, end_x * self.width, SlideBar().y_offset + 5]
+            temp_line = Line(points=temp_line_pos_list, width=5)
+            self.all_cursor_lines_list.append(temp_line)
+            self.canvas.add(
+                self.all_connectionist_color_list[counter])  # add Color
+            self.canvas.add(temp_line)  # add Line
+            # color index
+            counter += 1
 
         # visulize Lines between selected points on canvas
         self.add_lines_between_selected_points()
@@ -294,8 +292,10 @@ class DrawingBoard(Widget):
                 self.all_cursor_list[i * 2 + 1])
             canvas_selected_line.points = self.points[startPtIdx *
                                                       2: endPtIdx * 2]
+            temp = []
             for selected_idx in range(startPtIdx, endPtIdx, 1):
-                self.all_selected_points_idx_list.append(selected_idx)
+                temp.append(selected_idx)
+            self.all_selected_points_idx_list.append(temp)
 
     def on_touch_move(self, touch):
         super(DrawingBoard, self).on_touch_down(touch)
@@ -344,14 +344,14 @@ class DrawingBoard(Widget):
                 self.closest_cursor.center_x = touch.x
 
         # make sure the cursor's center_x value won't exceed others
-        # '+-5' is for foolproof
+        # '+-1' is for foolproof
         if self.closest_cursor is not None:
             if self.closest_cursor_id > 0 and self.closest_cursor_id < len(self.all_cursor_list) - 1:
                 for any_i, any_cursor in enumerate(self.all_cursor_list):
-                    if any_i > self.closest_cursor_id and any_cursor.center_x < self.closest_cursor.center_x + 5:
+                    if any_i > self.closest_cursor_id and any_cursor.center_x < self.closest_cursor.center_x + 1:
                         any_cursor.center_x = self.closest_cursor.center_x + \
                             5 * (any_i - self.closest_cursor_id)
-                    if any_i < self.closest_cursor_id and any_cursor.center_x > self.closest_cursor.center_x - 5:
+                    if any_i < self.closest_cursor_id and any_cursor.center_x > self.closest_cursor.center_x - 1:
                         any_cursor.center_x = self.closest_cursor.center_x - \
                             5 * (self.closest_cursor_id - any_i)
 
@@ -493,9 +493,11 @@ class AppEngine(FloatLayout):
             for _, timestep_dict in enumerate(self.result_dict['data']):
                 # default value with False: not labeled
                 timestep_dict['isL'] = False
-            for labeled_idx in self.board.all_selected_points_idx_list:
-                # selected timestep idx with True: labeled
-                self.result_dict['data'][labeled_idx]['isL'] = True
+            for labeled_idx_list in self.board.all_selected_points_idx_list:
+                for labeled_idx in labeled_idx_list:
+                    # selected timestep idx with True: labeled
+                    self.result_dict['data'][labeled_idx]['isL'] = True
+            self.result_dict['labeled_idx_list'] = self.board.all_selected_points_idx_list
         else:
             self.result_dict = None
             return None
@@ -573,9 +575,8 @@ class AppEngine(FloatLayout):
             voc_length = len(str(voc))
             voc_pos_list = []
             restored_labeled_list = []
-            if 'isL' in raw_data['data'][0]:  # check key 'isL' exist
-                for timestep_dict in raw_data['data']:
-                    restored_labeled_list.append(timestep_dict['isL'])
+            if 'labeled_idx_list' in raw_data:  # check key 'labeled_idx_list' exist
+                restored_labeled_list = raw_data['labeled_idx_list']
             else:
                 restored_labeled_list = None
 
