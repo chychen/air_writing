@@ -21,8 +21,9 @@ from kivy.uix.textinput import TextInput
 from kivy.graphics import Point, Color, Line
 import kivy
 kivy.require('1.8.0')
-Config.set('graphics', 'width', '1800')
-Config.set('graphics', 'height', '1000')
+# Config.set('graphics', 'width', '1800')
+# Config.set('graphics', 'height', '1000')
+Config.set('graphics', 'fullscreen', 'auto')
 # use both left click and right click from mouse in this app
 Config.set('input', 'mouse', 'mouse, disable_multitouch')
 from preprocessing.sphere_fitting import fit_sphere
@@ -446,10 +447,10 @@ class AppEngine(FloatLayout):
                 if fit_sphere(data_dirpath, self.normalized_dirpath):
                     pass
             else:
-                self.create_userid_textinput(title="Try Again")
+                self.create_userid_textinput(title="BAD ID")
                 return
         else:
-            self.create_userid_textinput(title="Try Again")
+            self.create_userid_textinput(title="BAD ID")
             return
 
         for _, _, files in os.walk(self.normalized_dirpath):
