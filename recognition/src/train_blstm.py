@@ -75,50 +75,7 @@ class ModelConfig(object):
 
 
 def main(_):
-    with tf.get_default_graph().as_default() as graph:
-        global_steps = tf.train.get_or_create_global_step(graph=graph)
-
-        # TODO read data
-        X = np.ones([FLAGS.batch_size, FLAGS.num_steps,
-                     FLAGS.input_dims], dtype=np.float32)
-        indices = np.array(
-            np.ones([FLAGS.batch_size, FLAGS.num_steps], dtype=np.int32), dtype=np.int32)
-        values = np.array(
-            np.ones(FLAGS.batch_size, dtype=np.int32), dtype=np.int32)
-        shape = np.array([FLAGS.batch_size, FLAGS.num_steps], dtype=np.int32)
-        Y = tf.SparseTensorValue(indices, values, shape)
-
-        # config setting
-        config = ModelConfig()
-        config.show()
-
-        # model
-        model = model_blstm.HWRModel(config)
-
-        # summary
-        # merged_op = tf.summary.merge_all()
-        # train_summary_writer = tf.summary.FileWriter(
-        #     FLAGS.log_dir + 'train', graph=graph)
-        # valid_summary_writer = tf.summary.FileWriter(
-        #     FLAGS.log_dir + 'valid', graph=graph)
-
-        init = tf.global_variables_initializer()
-        # saver
-        # saver = tf.train.Saver()
-
-        # Session
-        with tf.Session() as sess:
-            sess.run(init)
-            model.predict(sess, X)
-            # model.step(sess, X, Y, global_step=global_steps)
-
-            # for epoch_steps in range(FLAGS.total_epoches):
-            #     if (epoch_steps + 1) % 50 == 0:
-            #         # Save the variables to disk.
-            #         save_path = saver.save(
-            #             sess, FLAGS.checkpoints_dir, global_step=epoch_steps)
-            #         print("Model saved in file: %s" % save_path)
-
+    pass
 
 if __name__ == "__main__":
     if not os.path.exists(FLAGS.checkpoints_dir):
