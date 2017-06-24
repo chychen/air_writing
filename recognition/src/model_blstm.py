@@ -51,12 +51,13 @@ class HWRModel(object):
                 scope=scope
             )
             print ("stack_bidirectional_dynamic_rnn:", outputs)
-        with tf.variable_scope('projection') as scope:
-            W = tf.Variable(tf.truncated_normal([self.hidden_size * 2,
-                                                 self.num_classes], stddev=0.1))
-            b = tf.Variable(tf.random_normal(shape=[self.num_classes]))
-            projection = tf.matmul(outputs, W) + b
-        self.logits_op = projection
+        # TODO deal with outputs fw and bw concate problem
+        # with tf.variable_scope('projection') as scope:
+        #     W = tf.Variable(tf.truncated_normal([self.hidden_size * 2,
+        #                                          self.num_classes], stddev=0.1))
+        #     b = tf.Variable(tf.random_normal(shape=[self.num_classes]))
+        #     projection = tf.matmul(outputs[-1], W) + b
+        self.logits_op = outputs
 
         print(self.label_ph)
         print(self.logits_op)
@@ -109,12 +110,12 @@ class TestingConfig(object):
         self.checkpoints_dir = 'checkpoints/'
         self.log_dir = 'log/'
         self.batch_size = 25
-        self.total_epoches = 100
+        self.total_epoches = 50
         self.hidden_size = 10
         self.num_layers = 2
         self.input_dims = 15
         self.num_classes = 20
-        self.num_steps = 100
+        self.num_steps = 50
         self.learning_rate = 1e-4
         self.decay_rate = 0
         self.momentum = 0
