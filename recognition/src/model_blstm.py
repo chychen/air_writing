@@ -45,20 +45,27 @@ class HWRModel(object):
                 dtype=tf.float32,
                 initial_states_fw=None,
                 initial_states_bw=None,
-                sequence_length=[self.num_steps for _ in range(self.batch_size)],
+                sequence_length=[
+                    self.num_steps for _ in range(self.batch_size)],
                 parallel_iterations=None,
                 scope=scope
             )
             print ("stack_bidirectional_dynamic_rnn:", outputs)
-        self.inference_op = outputs
+        with tf.variable_scope('projection') as scope:
+            W = tf.Variable(tf.truncated_normal([self.hidden_size * 2,
+                                                 self.num_classes], stddev=0.1))
+            b = tf.Variable(tf.random_normal(shape=[self.num_classes]))
+            projection = tf.matmul(outputs, W) + b
+        self.logits_op = projection
 
         print(self.label_ph)
-        print(self.inference_op)
+        print(self.logits_op)
         with tf.name_scope('ctc_loss'):
             ctc_loss = tf.nn.ctc_loss(
                 labels=self.label_ph,
-                inputs=self.inference_op,
-                sequence_length=[self.num_steps for _ in range(self.batch_size)],
+                inputs=self.logits_op,
+                sequence_length=[
+                    self.num_steps for _ in range(self.batch_size)],
                 preprocess_collapse_repeated=False,
                 ctc_merge_repeated=True,
                 time_major=False
@@ -72,12 +79,18 @@ class HWRModel(object):
             self.learning_rate, self.decay_rate, self.momentum,
             1e-10).minimize(self.losses_op, global_step=None)
 
+        transposed_op = tf.transpose(self.logits_op, [1, 0, 2])
+        self.decoded_op, _ = tf.nn.ctc_beam_search_decoder(
+            inputs=transposed_op,
+            sequence_length=[self.num_steps for _ in range(self.batch_size)],
+            beam_width=100,
+            top_paths=1,
+            merge_repeated=True)
+        print(self.decoded_op)
+
     def predict(self, sess, inputs):
-        # TODO: decoder with tf.nn.ctc_beam_search_decoder
-        # URL:
-        # https://www.tensorflow.org/api_docs/python/tf/nn/ctc_beam_search_decoder
         feed_dict = {self.input_ph: inputs}
-        return sess.run(self.inference_op, feed_dict=feed_dict)
+        return sess.run(self.decoded_op, feed_dict=feed_dict)
 
     def step(self, sess, inputs, labels, global_step=None):
         feed_dict = {self.input_ph: inputs, self.label_ph: labels}
@@ -101,7 +114,7 @@ class TestingConfig(object):
         self.num_layers = 2
         self.input_dims = 15
         self.num_classes = 20
-        self.num_steps = 5
+        self.num_steps = 100
         self.learning_rate = 1e-4
         self.decay_rate = 0
         self.momentum = 0
@@ -109,15 +122,18 @@ class TestingConfig(object):
 
 def test_model():
     with tf.get_default_graph().as_default() as graph:
-        global_steps = tf.train.get_or_create_global_step(graph=graph)
+        # global_steps = tf.train.get_or_create_global_step(graph=graph)
 
         config = TestingConfig()
 
         X = np.ones([config.batch_size, config.num_steps,
                      config.input_dims], dtype=np.float32)
-        indices = np.array([[n, 1] for n in range(config.batch_size)], dtype=np.int64)
-        values = np.array([1 for _ in range(config.batch_size)], dtype=np.int32)
-        shape = np.array([config.batch_size, config.num_classes], dtype=np.int64)
+        indices = np.array([[n, 1]
+                            for n in range(config.batch_size)], dtype=np.int64)
+        values = np.array(
+            [1 for _ in range(config.batch_size)], dtype=np.int32)
+        shape = np.array(
+            [config.batch_size, config.num_classes], dtype=np.int64)
         Y = tf.SparseTensorValue(indices, values, shape)
 
         model = HWRModel(config)
@@ -130,6 +146,7 @@ def test_model():
                 logits = model.predict(sess, X)
                 losses = model.step(sess, X, Y)
                 print(losses)
+
 
 if __name__ == "__main__":
     test_model()
