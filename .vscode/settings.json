@@ -10,6 +10,6 @@
         //W0613:Unused argument 'controller'
         //W0611:Unused import thread
         //W0603:Using the global statement
-        "--disable=C0111,C0103,C0303,C0301,C0410,C0413,W0613,W0611,E0401, W0603"
+        "--disable=E1101, C0111,C0103,C0303,C0301,C0410,C0413,W0613,W0611,E0401, W0603"
     ]
 }
