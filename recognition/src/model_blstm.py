@@ -50,7 +50,7 @@ class HWRModel(object):
                 parallel_iterations=None,
                 scope=scope
             )
-            print ("stack_bidirectional_dynamic_rnn:", outputs)
+            print("stack_bidirectional_dynamic_rnn:", outputs)
         # TODO deal with outputs fw and bw concate problem
         # with tf.variable_scope('projection') as scope:
         #     W = tf.Variable(tf.truncated_normal([self.hidden_size * 2,
@@ -121,6 +121,27 @@ class TestingConfig(object):
         self.momentum = 0
 
 
+class TrainingConfig(object):
+    """
+    testing config
+    """
+
+    def __init__(self):
+        self.data_dir = 'data/'
+        self.checkpoints_dir = 'checkpoints/'
+        self.log_dir = 'log/'
+        self.batch_size = 25
+        self.total_epoches = 50
+        self.hidden_size = 10
+        self.num_layers = 2
+        self.input_dims = 15
+        self.num_classes = 20
+        self.num_steps = 50
+        self.learning_rate = 1e-4
+        self.decay_rate = 0
+        self.momentum = 0
+
+
 def test_model():
     with tf.get_default_graph().as_default() as graph:
         # global_steps = tf.train.get_or_create_global_step(graph=graph)
@@ -147,6 +168,40 @@ def test_model():
                 logits = model.predict(sess, X)
                 losses = model.step(sess, X, Y)
                 print(losses)
+
+
+def train_model():
+    with tf.get_default_graph().as_default() as graph:
+        # global_steps = tf.train.get_or_create_global_step(graph=graph)
+
+        config = TrainingConfig()
+        data = np.load('dense.py')
+        num_line = data.shape[0]
+        num_batch = int(num_line / config.batch_size)
+
+        # TODO X
+
+        ###
+
+        model = HWRModel(config)
+
+        init = tf.global_variables_initializer()
+        # Session
+        with tf.Session() as sess:
+            sess.run(init)
+            for i in range(config.total_epoches):
+                for j in range(num_batch):
+                    # TODO X
+                    logits = model.predict(sess, X)
+
+                    ###
+                    dense_batch = data[j * config.batch_size:(j + 1) * config.batch_size]
+                    indices = tf.where(tf.not_equal(dense_batch, 0))
+                    Y = tf.SparseTensor(indices, tf.gather_nd(
+                        dense_batch, indices), dense_batch.get_shape())
+
+                    losses = model.step(sess, X, Y)
+                    print(losses)
 
 
 if __name__ == "__main__":
