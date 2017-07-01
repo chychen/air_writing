@@ -25,10 +25,10 @@ for row in k:
 
 
 l += ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-# for sentence in s:
-#     for char in sentence:
-#         if char not in l:
-#             print(sentence,"  ",char)
+for sentence in s:
+    for char in sentence:
+        if char not in l:
+            print(sentence,"  ",char)
 
 dense = np.zeros((len(s), 64))
 print(l)
