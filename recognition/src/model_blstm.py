@@ -23,10 +23,10 @@ class HWRModel(object):
         self.decay_rate = config.decay_rate
         self.momentum = config.momentum
 
-        # trajectory = [x, y, islifted, speed, time, direction]
+        # TODO trajectory = [x, y, islifted, speed, time, direction]
         # input = [batch_size, time, trajectory]
         self.input_ph = tf.placeholder(dtype=tf.float32, shape=[
-            None, self.num_steps, self.input_dims], name='input_data')
+            None, None, self.input_dims], name='input_data')
         self.label_ph = tf.sparse_placeholder(
             dtype=tf.int32, name='label_data')
 
@@ -45,8 +45,7 @@ class HWRModel(object):
                 dtype=tf.float32,
                 initial_states_fw=None,
                 initial_states_bw=None,
-                sequence_length=[
-                    self.num_steps for _ in range(self.batch_size)],
+                sequence_length=self.num_steps,
                 parallel_iterations=None,
                 scope=scope
             )
@@ -65,8 +64,7 @@ class HWRModel(object):
             ctc_loss = tf.nn.ctc_loss(
                 labels=self.label_ph,
                 inputs=self.logits_op,
-                sequence_length=[
-                    self.num_steps for _ in range(self.batch_size)],
+                sequence_length=self.num_steps,
                 preprocess_collapse_repeated=False,
                 ctc_merge_repeated=True,
                 time_major=False
@@ -83,7 +81,7 @@ class HWRModel(object):
         transposed_op = tf.transpose(self.logits_op, [1, 0, 2])
         self.decoded_op, _ = tf.nn.ctc_beam_search_decoder(
             inputs=transposed_op,
-            sequence_length=[self.num_steps for _ in range(self.batch_size)],
+            sequence_length=self.num_steps,
             beam_width=100,
             top_paths=1,
             merge_repeated=True)
@@ -115,32 +113,10 @@ class TestingConfig(object):
         self.num_layers = 2
         self.input_dims = 15
         self.num_classes = 20
-        self.num_steps = 50
+        self.num_steps = [10 for _ in range(25)]
         self.learning_rate = 1e-4
         self.decay_rate = 0
         self.momentum = 0
-
-
-class TrainingConfig(object):
-    """
-    testing config
-    """
-
-    def __init__(self):
-        self.data_dir = 'data/'
-        self.checkpoints_dir = 'checkpoints/'
-        self.log_dir = 'log/'
-        self.batch_size = 25
-        self.total_epoches = 50
-        self.hidden_size = 10
-        self.num_layers = 2
-        self.input_dims = 15
-        self.num_classes = 20
-        self.num_steps = 50
-        self.learning_rate = 1e-4
-        self.decay_rate = 0
-        self.momentum = 0
-
 
 def test_model():
     with tf.get_default_graph().as_default() as graph:
@@ -148,7 +124,7 @@ def test_model():
 
         config = TestingConfig()
 
-        X = np.ones([config.batch_size, config.num_steps,
+        X = np.ones([config.batch_size, 10,
                      config.input_dims], dtype=np.float32)
         indices = np.array([[n, 1]
                             for n in range(config.batch_size)], dtype=np.int64)
@@ -168,41 +144,6 @@ def test_model():
                 logits = model.predict(sess, X)
                 losses = model.step(sess, X, Y)
                 print(losses)
-
-
-def train_model():
-    with tf.get_default_graph().as_default() as graph:
-        # global_steps = tf.train.get_or_create_global_step(graph=graph)
-
-        config = TrainingConfig()
-        data = np.load('dense.py')
-        num_line = data.shape[0]
-        num_batch = int(num_line / config.batch_size)
-
-        # TODO X
-
-        ###
-
-        model = HWRModel(config)
-
-        init = tf.global_variables_initializer()
-        # Session
-        with tf.Session() as sess:
-            sess.run(init)
-            for i in range(config.total_epoches):
-                for j in range(num_batch):
-                    # TODO X
-                    logits = model.predict(sess, X)
-
-                    ###
-                    dense_batch = data[j * config.batch_size:(j + 1) * config.batch_size]
-                    indices = tf.where(tf.not_equal(dense_batch, 0))
-                    Y = tf.SparseTensor(indices, tf.gather_nd(
-                        dense_batch, indices), dense_batch.get_shape())
-
-                    losses = model.step(sess, X, Y)
-                    print(losses)
-
 
 if __name__ == "__main__":
     test_model()
