@@ -79,24 +79,24 @@ def train_model():
     with tf.get_default_graph().as_default() as graph:
         # global_steps = tf.train.get_or_create_global_step(graph=graph)
 
+        # config setting
+        config = ModelConfig()
+        config.show()
+
         # load data
         # [textline_id, length, 3], 3->(x', y', time)
         input_data = np.load('data.npy')
         label_data = np.load('dense.npy')
-        length_list = []
-        for i, v in enumerate(input_data):
-            length_list.append(v.shape[0])
-
-        # config setting
-        config = ModelConfig()
-        config.set_num_steps(length_list)
+        seq_len_list = []
+        for _, v in enumerate(input_data):
+            seq_len_list.append(v.shape[0])
+        seq_len_list = np.array(seq_len_list)
+        k = np.argmax(seq_len_list)
+        print(seq_len_list[k])
+        exit() # TODO
 
         num_line = label_data.shape[0]
         num_batch = int(num_line / config.batch_size)
-
-        # TODO X
-
-        ###
 
         model = model_blstm.HWRModel(config)
 
@@ -110,6 +110,9 @@ def train_model():
                     # input
                     input_batch = input_data[batch_idx:batch_idx +
                                              config.batch_size]
+                    # sequence length
+                    seq_len_batch = seq_len_list[batch_idx:batch_idx +
+                                                 config.batch_size]
                     # label
                     dense_batch = label_data[batch_idx:batch_idx +
                                              config.batch_size]
@@ -117,9 +120,9 @@ def train_model():
                     Y = tf.SparseTensor(indices, tf.gather_nd(
                         dense_batch, indices), dense_batch.shape)
 
-                    logits = model.predict(sess, input_batch)
-                    # losses = model.step(sess, input_batch, Y)
-                    # print(losses)
+                    # logits = model.predict(sess, input_batch, seq_len_batch)
+                    losses = model.step(sess, input_batch, seq_len_batch, Y)
+                    print(losses)
 
 
 def main(_):
