@@ -13,6 +13,8 @@ DATA_PATH = os.path.join(FILE_PATH, "../data/")
 LABEL_DATA_PATH = os.path.join(DATA_PATH, "ascii/")
 STROKES_DATA_PATH = os.path.join(DATA_PATH, "lineStrokes/")
 
+ESCAPE_CHAR = '~!@#$%^&*()_+{}:"<>?`-=[];\',./|'
+
 
 def find_textline_by_id(filename):
     """
@@ -40,10 +42,10 @@ def find_textline_by_id(filename):
         if flag:
             line_counter += 1
         if line_counter == line_id:
-            # line = re.sub('', '', line)
+            for char in ESCAPE_CHAR:
+                line = line.replace(char, '')
             label = line
             break
-            # TODO remove some common mark and check about empty cases
     return label
 
 
@@ -58,7 +60,7 @@ def main():
             # split our .xml (eg: a01-020w-01.xml -> a01-020w-01)
             text_line_id = file_name[:-4]
             label_text_line = find_textline_by_id(text_line_id)
-            if len(label_text_line) != 0: # prevent missing data in ascii(label data)
+            if len(label_text_line) != 0:  # prevent missing data in ascii(label data)
                 label_text_line_all.append(label_text_line)
                 ############# trajectory data #############
                 text_line_path = os.path.join(path_1, file_name)
@@ -108,6 +110,15 @@ def main():
                 # print(text_line_path)
                 # print(np.array(text_line_data_all).shape)
                 # input()
+
+    text_line_data_all = np.array(text_line_data_all)
+    label_text_line_all = np.array(label_text_line_all)
+    print(text_line_data_all.shape)
+    print(label_text_line_all.shape)
+    np.save("data", text_line_data_all)
+    np.save("label", label_text_line_all)
+    print("Successfully saved!")
+
     # for path_1, _, _ in os.walk(STROKES_DATA_PATH):
     #     for path_2, _, _ in os.walk(path_1):
     #         for path_3, _, files in os.walk(path_2):
@@ -168,14 +179,6 @@ def main():
     #                     # print(text_line_path)
     #                     # print(np.array(text_line_data_all).shape)
     #                     # input()
-
-    text_line_data_all = np.array(text_line_data_all)
-    label_text_line_all = np.array(label_text_line_all)
-    print(text_line_data_all.shape)
-    print(label_text_line_all.shape)
-    np.save("data", text_line_data_all)
-    np.save("label", label_text_line_all)
-    print("Successfully saved!")
 
 
 if __name__ == "__main__":
