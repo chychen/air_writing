@@ -16,7 +16,7 @@ tf.app.flags.DEFINE_string('checkpoints_dir', '../checkpoints/',
                            "training checkpoints directory")
 tf.app.flags.DEFINE_string('log_dir', '../train_log/',
                            "summary directory")
-tf.app.flags.DEFINE_integer('batch_size', 512,
+tf.app.flags.DEFINE_integer('batch_size', 128,
                             "mini-batch size")
 tf.app.flags.DEFINE_integer('total_epoches', 100,
                             "total training epoches")
@@ -92,8 +92,20 @@ def train_model():
             seq_len_list.append(v.shape[0])
         seq_len_list = np.array(seq_len_list)
         k = np.argmax(seq_len_list)
-        print(seq_len_list[k])
-        exit() # TODO
+        max_length = input_data[k].shape[0]
+
+        # padding each textline to maximum length -> max_length
+        padded_input_data = []
+        for _, v in enumerate(input_data):
+            residual = max_length - v.shape[0]
+            padding_array = np.zeros([residual, 3])
+            padded_input_data.append(
+                np.concatenate([v, padding_array], axis=0))
+        padded_input_data = np.array(padded_input_data)
+        # print(input_data.shape)
+        # print(input_data.dtype)
+        # print(padded_input_data.shape)
+        # print(padded_input_data.dtype)
 
         num_line = label_data.shape[0]
         num_batch = int(num_line / config.batch_size)
@@ -108,8 +120,8 @@ def train_model():
                 for j in range(num_batch):
                     batch_idx = j * config.batch_size
                     # input
-                    input_batch = input_data[batch_idx:batch_idx +
-                                             config.batch_size]
+                    input_batch = padded_input_data[batch_idx:batch_idx +
+                                                    config.batch_size]
                     # sequence length
                     seq_len_batch = seq_len_list[batch_idx:batch_idx +
                                                  config.batch_size]

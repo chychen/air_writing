@@ -145,8 +145,8 @@ def test_model():
         # Session
         with tf.Session() as sess:
             sess.run(init)
-            for i in range(config.total_epoches):
-                logits = model.predict(sess, X, seq_len)
+            for _ in range(config.total_epoches):
+                # logits = model.predict(sess, X, seq_len)
                 losses = model.step(sess, X, seq_len, Y)
                 print(losses)
 
