@@ -21,7 +21,7 @@ for row in k:
     if len(gg) > themax:
         print(len(gg))
         themax = len(gg)
-        print(gg.strip('.'))
+        # print(gg.strip('.'))
 
 
 l += ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']

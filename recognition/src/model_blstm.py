@@ -27,9 +27,15 @@ class HWRModel(object):
         self.input_ph = tf.placeholder(dtype=tf.float32, shape=[
             None, None, self.input_dims], name='input_data')
         self.seq_len_ph = tf.placeholder(dtype=tf.int32, shape=[
-            self.batch_size], name='sequence_lenth')
-        self.label_ph = tf.sparse_placeholder(
-            dtype=tf.int32, name='label_data')
+            None], name='sequence_lenth')
+        self.label_ph = tf.placeholder(dtype=tf.int32, shape=[
+            config.batch_size, self.num_classes], name='label_data')
+        indices = tf.where(tf.not_equal(self.label_ph, 0))
+        self.label_sparse = tf.SparseTensor(indices, tf.gather_nd(
+            self.label_ph, indices), self.label_ph.shape)
+        # self.label_ph = tf.sparse_placeholder(
+        #     dtype=tf.int32, name='label_data')
+
 
         # inference
         def lstm_cell():
@@ -59,11 +65,11 @@ class HWRModel(object):
         #     projection = tf.matmul(outputs[-1], W) + b
         self.logits_op = outputs
 
-        print(self.label_ph)
+        print(self.label_sparse)
         print(self.logits_op)
         with tf.name_scope('ctc_loss'):
             ctc_loss = tf.nn.ctc_loss(
-                labels=self.label_ph,
+                labels=self.label_sparse,
                 inputs=self.logits_op,
                 sequence_length=self.seq_len_ph,
                 preprocess_collapse_repeated=False,
@@ -110,12 +116,12 @@ class TestingConfig(object):
         self.data_dir = 'data/'
         self.checkpoints_dir = 'checkpoints/'
         self.log_dir = 'log/'
-        self.batch_size = 25
+        self.batch_size = 128
         self.total_epoches = 50
         self.hidden_size = 10
         self.num_layers = 2
         self.input_dims = 15
-        self.num_classes = 20
+        self.num_classes = 64
         self.learning_rate = 1e-4
         self.decay_rate = 0
         self.momentum = 0

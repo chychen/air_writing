@@ -26,7 +26,7 @@ tf.app.flags.DEFINE_integer('num_layers', 1,
                             "number of stacked blstm")
 tf.app.flags.DEFINE_integer("input_dims", 3,
                             "input dimensions")
-tf.app.flags.DEFINE_integer("num_classes", 100 + 1,
+tf.app.flags.DEFINE_integer("num_classes", 64,
                             "num_labels + 1(blank)")
 tf.app.flags.DEFINE_float('learning_rate', 0.0001,
                           "learning rate of RMSPropOptimizer")
@@ -94,6 +94,15 @@ def train_model():
         k = np.argmax(seq_len_list)
         max_length = input_data[k].shape[0]
 
+        ################################
+        # indices = np.array([[n, 1]
+        #                     for n in range(config.batch_size)], dtype=np.int64)
+        # values = np.array(
+        #     [1 for _ in range(config.batch_size)], dtype=np.int32)
+        # shape = np.array(
+        #     [config.batch_size, config.num_classes], dtype=np.int64)
+        # Y = tf.SparseTensorValue(indices, values, shape)
+
         # padding each textline to maximum length -> max_length
         padded_input_data = []
         for _, v in enumerate(input_data):
@@ -102,21 +111,19 @@ def train_model():
             padded_input_data.append(
                 np.concatenate([v, padding_array], axis=0))
         padded_input_data = np.array(padded_input_data)
-        # print(input_data.shape)
-        # print(input_data.dtype)
-        # print(padded_input_data.shape)
-        # print(padded_input_data.dtype)
 
-        num_line = label_data.shape[0]
-        num_batch = int(num_line / config.batch_size)
+        # number of batches
+        num_batch = int(label_data.shape[0] / config.batch_size)
 
+        # model
         model = model_blstm.HWRModel(config)
 
         init = tf.global_variables_initializer()
         # Session
         with tf.Session() as sess:
             sess.run(init)
-            for i in range(config.total_epoches):
+            for _ in range(config.total_epoches):
+                #TODO shuffle
                 for j in range(num_batch):
                     batch_idx = j * config.batch_size
                     # input
@@ -128,12 +135,9 @@ def train_model():
                     # label
                     dense_batch = label_data[batch_idx:batch_idx +
                                              config.batch_size]
-                    indices = tf.where(tf.not_equal(dense_batch, 0))
-                    Y = tf.SparseTensor(indices, tf.gather_nd(
-                        dense_batch, indices), dense_batch.shape)
 
                     # logits = model.predict(sess, input_batch, seq_len_batch)
-                    losses = model.step(sess, input_batch, seq_len_batch, Y)
+                    losses = model.step(sess, input_batch, seq_len_batch, dense_batch)
                     print(losses)
 
 
