@@ -6,7 +6,6 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import rnn
 
-
 class HWRModel(object):
     """
     HandWriting Recognition Model
@@ -35,8 +34,8 @@ class HWRModel(object):
         indices = tf.where(tf.not_equal(self.label_ph, 0))
         self.label_sparse = tf.SparseTensor(indices, tf.gather_nd(
             self.label_ph, indices), self.label_ph.shape)
-        self.label_seq_len_ph = tf.placeholder(dtype=tf.int32, shape=[
-            None], name='label_sequence_lenth')
+        # self.label_seq_len_ph = tf.placeholder(dtype=tf.int32, shape=[
+        #     None], name='label_sequence_lenth')
 
         # inference
         def lstm_cell():
@@ -80,6 +79,7 @@ class HWRModel(object):
             fb_out_st = tf.stack(fb_out, axis=0)
             print(fb_out_st)
 
+        # time_major
         self.logits_op = fb_out_st
         print(self.label_sparse)
         print(self.logits_op)
@@ -87,7 +87,7 @@ class HWRModel(object):
             ctc_loss = tf.nn.ctc_loss(
                 labels=self.label_sparse,
                 inputs=self.logits_op,
-                sequence_length=self.label_seq_len_ph,
+                sequence_length=self.seq_len_ph,
                 preprocess_collapse_repeated=False,
                 ctc_merge_repeated=True,
                 time_major=True
@@ -97,26 +97,29 @@ class HWRModel(object):
         self.losses_op = ctc_loss
         print(self.losses_op)
 
-        # self.train_op = tf.train.AdamOptimizer(
-        # self.learning_rate).minimize(self.losses_op,
-        # global_step=self.global_steps)
-        opt = tf.train.RMSPropOptimizer(
-            self.learning_rate, self.decay_rate, self.momentum, 1e-10)
-        params = tf.trainable_variables()
-        grads_and_vars = opt.compute_gradients(self.losses_op, params)
-        clipped_grads_and_vars = [
-            (tf.clip_by_norm(gv[0], 1.0), gv[1]) for gv in grads_and_vars]
-        # clipped_gradients = tf.clip_by_norm(gradients, 5.0)
+        with tf.name_scope('optimizer'):
+            # self.train_op = tf.train.AdamOptimizer(
+            # self.learning_rate).minimize(self.losses_op,
+            # global_step=self.global_steps)
+            opt = tf.train.RMSPropOptimizer(
+                self.learning_rate, self.decay_rate, self.momentum, 1e-10)
+            params = tf.trainable_variables()
+            grads_and_vars = opt.compute_gradients(self.losses_op, params)
+            clipped_grads_and_vars = [
+                (tf.clip_by_norm(gv[0], 1.0), gv[1]) for gv in grads_and_vars]
+            # clipped_gradients = tf.clip_by_norm(gradients, 5.0)
         self.train_op = opt.apply_gradients(
             clipped_grads_and_vars, global_step=self.global_steps)
 
-        transposed_op = tf.transpose(self.logits_op, [1, 0, 2])
-        self.decoded_op, _ = tf.nn.ctc_beam_search_decoder(
-            inputs=transposed_op,
-            sequence_length=self.label_seq_len_ph,
-            beam_width=100,  # TODO no ideas
-            top_paths=1,  # TODO no ideas
-            merge_repeated=True)
+        with tf.name_scope('decoder'):
+            decoded, _ = tf.nn.ctc_beam_search_decoder(
+                inputs=self.logits_op,
+                sequence_length=self.seq_len_ph,
+                beam_width=100,
+                top_paths=1,
+                merge_repeated=True)
+            print(decoded[0])
+        self.decoded_op = tf.to_int32(decoded[0])
 
         # summary
         self.merged_op = tf.summary.merge_all()
@@ -124,16 +127,15 @@ class HWRModel(object):
         self.train_summary_writer = tf.summary.FileWriter(
             self.log_dir + 'train', graph=graph)
 
-    def predict(self, sess, inputs, label_seq_len):
+    def predict(self, sess, inputs, seq_len):
         feed_dict = {self.input_ph: inputs,
-                     self.label_seq_len_ph: label_seq_len}
+                     self.seq_len_ph: seq_len}
         return sess.run(self.decoded_op, feed_dict=feed_dict)
 
-    def step(self, sess, inputs, seq_len, labels, label_seq_len):
+    def step(self, sess, inputs, seq_len, labels):
         feed_dict = {self.input_ph: inputs,
                      self.seq_len_ph: seq_len,
-                     self.label_ph: labels,
-                     self.label_seq_len_ph: label_seq_len}
+                     self.label_ph: labels}
         gloebal_step, summary, _, losses = sess.run(
             [self.global_steps, self.merged_op, self.train_op, self.losses_op], feed_dict=feed_dict)
         # summary

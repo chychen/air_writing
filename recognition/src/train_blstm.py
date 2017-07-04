@@ -17,7 +17,7 @@ tf.app.flags.DEFINE_string('checkpoints_dir', '../checkpoints/',
                            "training checkpoints directory")
 tf.app.flags.DEFINE_string('log_dir', '../train_log/',
                            "summary directory")
-tf.app.flags.DEFINE_integer('batch_size', 256,
+tf.app.flags.DEFINE_integer('batch_size', 128,
                             "mini-batch size")
 tf.app.flags.DEFINE_integer('total_epoches', 300,
                             "total training epoches")
@@ -31,12 +31,15 @@ tf.app.flags.DEFINE_integer("num_classes", 69,  # 68 letters + 1 blank
                             "num_labels + 1(blank)")
 tf.app.flags.DEFINE_integer('log_freq', 1,
                             "how many times showing the mean loss per epoch")
-tf.app.flags.DEFINE_float('learning_rate', 1e-6,
+tf.app.flags.DEFINE_float('learning_rate', 0.01,
                           "learning rate of RMSPropOptimizer")
 tf.app.flags.DEFINE_float('decay_rate', 0.99,
                           "decay rate of RMSPropOptimizer")
 tf.app.flags.DEFINE_float('momentum', 0.9,
                           "momentum of RMSPropOptimizer")
+
+letter_table = [' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+                'g', 'ga', 'h', 'i', 'j', 'k', 'km', 'l', 'm', 'n', 'o', 'p', 'pt', 'q', 'r', 's', 'sc', 'sp', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '<b>']
 
 
 class ModelConfig(object):
@@ -84,12 +87,12 @@ def train_model():
         # [textline_id, length, 3], 3->(x', y', time)
         input_data = np.load('data.npy')
         target_data = np.load('dense.npy').item()
-        label_data = target_data['dense']
-        label_seq_len = target_data['length'].astype(np.int32)
+        label_data = target_data['dense'].astype(np.int32)
+        # label_seq_len = target_data['length'].astype(np.int32)
         seq_len_list = []
         for _, v in enumerate(input_data):
             seq_len_list.append(v.shape[0])
-        seq_len_list = np.array(seq_len_list)
+        seq_len_list = np.array(seq_len_list).astype(np.int32)
         k = np.argmax(seq_len_list)
         max_length = input_data[k].shape[0]
         # padding each textline to maximum length -> max_length (1939)
@@ -121,7 +124,7 @@ def train_model():
                 input_data = input_data[shuffled_indexes]
                 seq_len_list = seq_len_list[shuffled_indexes]
                 label_data = label_data[shuffled_indexes]
-                label_seq_len = label_seq_len[shuffled_indexes]
+                # label_seq_len = label_seq_len[shuffled_indexes]
                 for b in range(num_batch):
                     batch_idx = b * config.batch_size
                     # input
@@ -133,18 +136,25 @@ def train_model():
                     # label
                     dense_batch = label_data[batch_idx:batch_idx +
                                              config.batch_size]
-                    label_seq_len_batch = label_seq_len[batch_idx:batch_idx +
-                                                        config.batch_size]
+                    # label_seq_len_batch = label_seq_len[batch_idx:batch_idx +
+                    #                                     config.batch_size]
                     # train
                     gloebal_step, losses = model.step(sess, input_batch,
-                                                      seq_len_batch, dense_batch,
-                                                      label_seq_len_batch)
+                                                      seq_len_batch, dense_batch)
                     epoches_loss_sum += losses
                     counter += 1
 
                     # logging
                     if (gloebal_step % FLAGS.log_freq) == 0:
                         end_time = time.time()
+                        # predict result
+                        predict = model.predict(
+                            sess, input_batch, seq_len_batch)
+                        str_decoded = ''.join([letter_table[x] for x in np.asarray(predict[1])])
+                        val_original = ''.join([letter_table[x] for x in dense_batch[1]])
+                        print('Original val: %s' % val_original)
+                        print('Decoded val: %s' % str_decoded)
+
                         print("%d epoches, %d steps, mean loss: %f, time cost: %f(sec)" %
                               (e,
                                gloebal_step,
