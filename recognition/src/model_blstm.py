@@ -35,6 +35,8 @@ class HWRModel(object):
         indices = tf.where(tf.not_equal(self.label_ph, 0))
         self.label_sparse = tf.SparseTensor(indices, tf.gather_nd(
             self.label_ph, indices), self.label_ph.shape)
+        self.label_seq_len_ph = tf.placeholder(dtype=tf.int32, shape=[
+            None], name='label_sequence_lenth')
 
         # inference
         def lstm_cell():
@@ -55,7 +57,7 @@ class HWRModel(object):
                 parallel_iterations=None,
                 scope=scope
             )
-            # transposed to time based
+            # transposed to time_major
             fwbw_rh = tf.reshape(
                 fwbw, [-1, 1939, 2, self.hidden_size])
             # fwbw_rh_tp = tf.transpose(fwbw_rh, perm=[1, 0, 2, 3])
@@ -85,7 +87,7 @@ class HWRModel(object):
             ctc_loss = tf.nn.ctc_loss(
                 labels=self.label_sparse,
                 inputs=self.logits_op,
-                sequence_length=self.seq_len_ph,
+                sequence_length=self.label_seq_len_ph,
                 preprocess_collapse_repeated=False,
                 ctc_merge_repeated=True,
                 time_major=True
@@ -95,33 +97,43 @@ class HWRModel(object):
         self.losses_op = ctc_loss
         print(self.losses_op)
 
-        self.train_op = tf.train.RMSPropOptimizer(
-            self.learning_rate, self.decay_rate, self.momentum,
-            1e-10).minimize(self.losses_op, global_step=self.global_steps)
+        # self.train_op = tf.train.AdamOptimizer(
+        # self.learning_rate).minimize(self.losses_op,
+        # global_step=self.global_steps)
+        opt = tf.train.RMSPropOptimizer(
+            self.learning_rate, self.decay_rate, self.momentum, 1e-10)
+        params = tf.trainable_variables()
+        grads_and_vars = opt.compute_gradients(self.losses_op, params)
+        clipped_grads_and_vars = [
+            (tf.clip_by_norm(gv[0], 1.0), gv[1]) for gv in grads_and_vars]
+        # clipped_gradients = tf.clip_by_norm(gradients, 5.0)
+        self.train_op = opt.apply_gradients(
+            clipped_grads_and_vars, global_step=self.global_steps)
 
         transposed_op = tf.transpose(self.logits_op, [1, 0, 2])
         self.decoded_op, _ = tf.nn.ctc_beam_search_decoder(
             inputs=transposed_op,
-            sequence_length=self.seq_len_ph,
-            beam_width=100,
-            top_paths=1,
+            sequence_length=self.label_seq_len_ph,
+            beam_width=100,  # TODO no ideas
+            top_paths=1,  # TODO no ideas
             merge_repeated=True)
-        print(self.decoded_op)
 
         # summary
         self.merged_op = tf.summary.merge_all()
         # summary writer
         self.train_summary_writer = tf.summary.FileWriter(
-            self.log_dir + 'train')
+            self.log_dir + 'train', graph=graph)
 
-    def predict(self, sess, inputs, seq_len):
-        feed_dict = {self.input_ph: inputs, self.seq_len_ph: seq_len}
+    def predict(self, sess, inputs, label_seq_len):
+        feed_dict = {self.input_ph: inputs,
+                     self.label_seq_len_ph: label_seq_len}
         return sess.run(self.decoded_op, feed_dict=feed_dict)
 
-    def step(self, sess, inputs, seq_len, labels):
+    def step(self, sess, inputs, seq_len, labels, label_seq_len):
         feed_dict = {self.input_ph: inputs,
                      self.seq_len_ph: seq_len,
-                     self.label_ph: labels}
+                     self.label_ph: labels,
+                     self.label_seq_len_ph: label_seq_len}
         gloebal_step, summary, _, losses = sess.run(
             [self.global_steps, self.merged_op, self.train_op, self.losses_op], feed_dict=feed_dict)
         # summary
@@ -136,14 +148,14 @@ class TestingConfig(object):
     """
 
     def __init__(self):
-        self.data_dir = 'data/'
-        self.checkpoints_dir = 'checkpoints/'
-        self.log_dir = 'log/'
+        self.data_dir = '../data/'
+        self.checkpoints_dir = '../checkpoints/'
+        self.log_dir = '../model_log/'
         self.batch_size = 128
         self.total_epoches = 50
         self.hidden_size = 10
         self.num_layers = 2
-        self.input_dims = 15
+        self.input_dims = 3
         self.num_classes = 64
         self.learning_rate = 1e-4
         self.decay_rate = 0
@@ -151,30 +163,26 @@ class TestingConfig(object):
 
 
 def test_model():
-    config = TestingConfig()
+    with tf.get_default_graph().as_default() as graph:
+        config = TestingConfig()
 
-    X = np.ones([config.batch_size, 10,
-                 config.input_dims], dtype=np.float32)
-    indices = np.array([[n, 1]
-                        for n in range(config.batch_size)], dtype=np.int64)
-    values = np.array(
-        [1 for _ in range(config.batch_size)], dtype=np.int32)
-    shape = np.array(
-        [config.batch_size, config.num_classes], dtype=np.int64)
-    Y = tf.SparseTensorValue(indices, values, shape)
+        X = np.ones([config.batch_size, 1939,
+                     config.input_dims], dtype=np.float32)
 
-    seq_len = [10 for _ in range(config.batch_size)]
+        Y = np.random.randint(3, size=[config.batch_size, 64], dtype=np.int32)
 
-    model = HWRModel(config)
+        seq_len = [64 for _ in range(config.batch_size)]
 
-    init = tf.global_variables_initializer()
-    # Session
-    with tf.Session() as sess:
-        sess.run(init)
-        for _ in range(config.total_epoches):
-            # logits = model.predict(sess, X, seq_len)
-            losses = model.step(sess, X, seq_len, Y)
-            print(losses)
+        model = HWRModel(config, graph)
+
+        init = tf.global_variables_initializer()
+        # Session
+        with tf.Session() as sess:
+            sess.run(init)
+            for _ in range(config.total_epoches):
+                # logits = model.predict(sess, X, seq_len)
+                losses = model.step(sess, X, seq_len, Y)
+                print(losses)
 
 
 if __name__ == "__main__":

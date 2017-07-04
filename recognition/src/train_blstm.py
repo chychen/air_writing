@@ -17,7 +17,7 @@ tf.app.flags.DEFINE_string('checkpoints_dir', '../checkpoints/',
                            "training checkpoints directory")
 tf.app.flags.DEFINE_string('log_dir', '../train_log/',
                            "summary directory")
-tf.app.flags.DEFINE_integer('batch_size', 128,
+tf.app.flags.DEFINE_integer('batch_size', 256,
                             "mini-batch size")
 tf.app.flags.DEFINE_integer('total_epoches', 300,
                             "total training epoches")
@@ -27,11 +27,11 @@ tf.app.flags.DEFINE_integer('num_layers', 1,
                             "number of stacked blstm")
 tf.app.flags.DEFINE_integer("input_dims", 3,
                             "input dimensions")
-tf.app.flags.DEFINE_integer("num_classes", 69, # 68 letters + 1 blank
+tf.app.flags.DEFINE_integer("num_classes", 69,  # 68 letters + 1 blank
                             "num_labels + 1(blank)")
-tf.app.flags.DEFINE_integer('log_freq', 10,
+tf.app.flags.DEFINE_integer('log_freq', 1,
                             "how many times showing the mean loss per epoch")
-tf.app.flags.DEFINE_float('learning_rate', 0.01,
+tf.app.flags.DEFINE_float('learning_rate', 1e-6,
                           "learning rate of RMSPropOptimizer")
 tf.app.flags.DEFINE_float('decay_rate', 0.99,
                           "decay rate of RMSPropOptimizer")
@@ -83,7 +83,9 @@ def train_model():
         # load data
         # [textline_id, length, 3], 3->(x', y', time)
         input_data = np.load('data.npy')
-        label_data = np.load('dense.npy')
+        target_data = np.load('dense.npy').item()
+        label_data = target_data['dense']
+        label_seq_len = target_data['length'].astype(np.int32)
         seq_len_list = []
         for _, v in enumerate(input_data):
             seq_len_list.append(v.shape[0])
@@ -119,6 +121,7 @@ def train_model():
                 input_data = input_data[shuffled_indexes]
                 seq_len_list = seq_len_list[shuffled_indexes]
                 label_data = label_data[shuffled_indexes]
+                label_seq_len = label_seq_len[shuffled_indexes]
                 for b in range(num_batch):
                     batch_idx = b * config.batch_size
                     # input
@@ -126,24 +129,27 @@ def train_model():
                                                     config.batch_size]
                     # sequence length
                     seq_len_batch = seq_len_list[batch_idx:batch_idx +
-                                                    config.batch_size]
+                                                 config.batch_size]
                     # label
                     dense_batch = label_data[batch_idx:batch_idx +
-                                                config.batch_size]
+                                             config.batch_size]
+                    label_seq_len_batch = label_seq_len[batch_idx:batch_idx +
+                                                        config.batch_size]
                     # train
                     gloebal_step, losses = model.step(sess, input_batch,
-                                        seq_len_batch, dense_batch)
+                                                      seq_len_batch, dense_batch,
+                                                      label_seq_len_batch)
                     epoches_loss_sum += losses
                     counter += 1
 
                     # logging
-                    if b % (num_batch // FLAGS.log_freq) == 0:
+                    if (gloebal_step % FLAGS.log_freq) == 0:
                         end_time = time.time()
                         print("%d epoches, %d steps, mean loss: %f, time cost: %f(sec)" %
-                                (e,
-                                gloebal_step,
-                                epoches_loss_sum / counter,
-                                end_time - start_time))
+                              (e,
+                               gloebal_step,
+                               epoches_loss_sum / counter,
+                               end_time - start_time))
                         epoches_loss_sum = 0.0
                         counter = 0
                         start_time = end_time
