@@ -31,12 +31,15 @@ for sentence in s:
             print(sentence,"  ",char)
 
 dense = np.zeros((len(s), 64))
+length = np.zeros(len(s))
 print(l)
 for idl, sentence in enumerate(s):
     sentence_iter = iter(sentence)
+    length[idl] = len(sentence)
     for idx, char in enumerate(sentence_iter):
         if char == 'g' and sentence[idx:idx + 2] == 'ga':
             dense[idl, idx] = l.index('ga')
+            
             next(sentence_iter)
 
         elif char == 'k' and sentence[idx:idx + 2] == 'km':
@@ -62,8 +65,10 @@ for idl, sentence in enumerate(s):
             continue
 
 print(dense)
-
-np.save("dense.npy", dense)
+alldata = {}
+alldata['dense'] = dense
+alldata['length'] = length
+np.save("dense.npy", alldata)
 # print(row.strip('\n'))
 
 # import tensorflow as tf
