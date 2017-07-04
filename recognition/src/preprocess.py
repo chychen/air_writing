@@ -13,8 +13,7 @@ DATA_PATH = os.path.join(FILE_PATH, "../data/")
 LABEL_DATA_PATH = os.path.join(DATA_PATH, "ascii/")
 STROKES_DATA_PATH = os.path.join(DATA_PATH, "lineStrokes/")
 
-ESCAPE_CHAR = '~!@#$%^&*()_+{}:"<>?`-=[];\',./|'
-
+ESCAPE_CHAR = '~!@#$%^&*()_+{}:"<>?`-=[];\',./|\n'
 
 def find_textline_by_id(filename):
     """
@@ -34,9 +33,6 @@ def find_textline_by_id(filename):
     label = []
     flag = False
     for line in open(filepath, 'r'):
-        # print(line_counter)
-        # print(line)
-        # input()
         if line.startswith('CSR'):
             flag = True
         if flag:

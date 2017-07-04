@@ -12,7 +12,10 @@ class HWRModel(object):
     HandWriting Recognition Model
     """
 
-    def __init__(self, config):
+    def __init__(self, config, graph):
+        self.data_dir = config.data_dir
+        self.checkpoints_dir = config.checkpoints_dir
+        self.log_dir = config.log_dir
         self.batch_size = config.batch_size
         self.hidden_size = config.hidden_size
         self.num_layers = config.num_layers
@@ -22,20 +25,16 @@ class HWRModel(object):
         self.decay_rate = config.decay_rate
         self.momentum = config.momentum
 
-        # TODO trajectory = [x, y, islifted, speed, time, direction]
-        # input = [batch_size, time, trajectory]
+        self.global_steps = tf.train.get_or_create_global_step(graph=graph)
         self.input_ph = tf.placeholder(dtype=tf.float32, shape=[
-            None, None, self.input_dims], name='input_data')
+            None, 1939, self.input_dims], name='input_data')
         self.seq_len_ph = tf.placeholder(dtype=tf.int32, shape=[
             None], name='sequence_lenth')
         self.label_ph = tf.placeholder(dtype=tf.int32, shape=[
-            config.batch_size, self.num_classes], name='label_data')
+            config.batch_size, 64], name='label_data')
         indices = tf.where(tf.not_equal(self.label_ph, 0))
         self.label_sparse = tf.SparseTensor(indices, tf.gather_nd(
             self.label_ph, indices), self.label_ph.shape)
-        # self.label_ph = tf.sparse_placeholder(
-        #     dtype=tf.int32, name='label_data')
-
 
         # inference
         def lstm_cell():
@@ -45,7 +44,7 @@ class HWRModel(object):
 
         with tf.variable_scope('blstm') as scope:
             # dynamic method
-            outputs, _, _ = rnn.stack_bidirectional_dynamic_rnn(
+            fwbw, _, _ = rnn.stack_bidirectional_dynamic_rnn(
                 cells_fw=[lstm_cell() for _ in range(self.num_layers)],
                 cells_bw=[lstm_cell() for _ in range(self.num_layers)],
                 inputs=self.input_ph,
@@ -56,15 +55,30 @@ class HWRModel(object):
                 parallel_iterations=None,
                 scope=scope
             )
-            print("stack_bidirectional_dynamic_rnn:", outputs)
-        # TODO deal with outputs fw and bw concate problem
-        # with tf.variable_scope('projection') as scope:
-        #     W = tf.Variable(tf.truncated_normal([self.hidden_size * 2,
-        #                                          self.num_classes], stddev=0.1))
-        #     b = tf.Variable(tf.random_normal(shape=[self.num_classes]))
-        #     projection = tf.matmul(outputs[-1], W) + b
-        self.logits_op = outputs
+            # transposed to time based
+            fwbw_rh = tf.reshape(
+                fwbw, [-1, 1939, 2, self.hidden_size])
+            # fwbw_rh_tp = tf.transpose(fwbw_rh, perm=[1, 0, 2, 3])
+            fwbw_rh_tp = fwbw_rh
+            print("stack_bidirectional_dynamic_rnn:", fwbw_rh_tp)
+            weightsHidden = tf.Variable(tf.truncated_normal([2, self.hidden_size],
+                                                            stddev=np.sqrt(2.0 / (2 * self.hidden_size))))
+            biasesHidden = tf.Variable(tf.zeros([self.hidden_size]))
+            fwbw_rh_tp_unst = tf.unstack(fwbw_rh_tp, axis=1)
+            # print(fwbw_rh_tp_uns)
+            print(fwbw_rh_tp_unst[0])
+            fb_sum = [tf.reduce_sum(tf.multiply(
+                t, weightsHidden), axis=1) + biasesHidden for t in fwbw_rh_tp_unst]
+            print(fb_sum[0])
+            weightsClasses = tf.Variable(tf.truncated_normal([self.hidden_size,  self.num_classes],
+                                                             stddev=np.sqrt(2.0 / self.hidden_size)))
+            biasesClasses = tf.Variable(tf.zeros([self.num_classes]))
+            fb_out = [tf.matmul(t, weightsClasses) +
+                      biasesClasses for t in fb_sum]
+            fb_out_st = tf.stack(fb_out, axis=0)
+            print(fb_out_st)
 
+        self.logits_op = fb_out_st
         print(self.label_sparse)
         print(self.logits_op)
         with tf.name_scope('ctc_loss'):
@@ -74,7 +88,7 @@ class HWRModel(object):
                 sequence_length=self.seq_len_ph,
                 preprocess_collapse_repeated=False,
                 ctc_merge_repeated=True,
-                time_major=False
+                time_major=True
             )
             ctc_loss = tf.reduce_mean(ctc_loss)
             tf.summary.scalar('ctc_loss', ctc_loss)
@@ -83,7 +97,7 @@ class HWRModel(object):
 
         self.train_op = tf.train.RMSPropOptimizer(
             self.learning_rate, self.decay_rate, self.momentum,
-            1e-10).minimize(self.losses_op, global_step=None)
+            1e-10).minimize(self.losses_op, global_step=self.global_steps)
 
         transposed_op = tf.transpose(self.logits_op, [1, 0, 2])
         self.decoded_op, _ = tf.nn.ctc_beam_search_decoder(
@@ -94,17 +108,26 @@ class HWRModel(object):
             merge_repeated=True)
         print(self.decoded_op)
 
+        # summary
+        self.merged_op = tf.summary.merge_all()
+        # summary writer
+        self.train_summary_writer = tf.summary.FileWriter(
+            self.log_dir + 'train')
+
     def predict(self, sess, inputs, seq_len):
         feed_dict = {self.input_ph: inputs, self.seq_len_ph: seq_len}
         return sess.run(self.decoded_op, feed_dict=feed_dict)
 
-    def step(self, sess, inputs, seq_len, labels, global_step=None):
+    def step(self, sess, inputs, seq_len, labels):
         feed_dict = {self.input_ph: inputs,
                      self.seq_len_ph: seq_len,
                      self.label_ph: labels}
-        _, losses = sess.run(
-            [self.train_op, self.losses_op], feed_dict=feed_dict)
-        return losses
+        gloebal_step, summary, _, losses = sess.run(
+            [self.global_steps, self.merged_op, self.train_op, self.losses_op], feed_dict=feed_dict)
+        # summary
+        self.train_summary_writer.add_summary(
+            summary, global_step=gloebal_step)
+        return gloebal_step, losses
 
 
 class TestingConfig(object):
@@ -128,33 +151,30 @@ class TestingConfig(object):
 
 
 def test_model():
-    with tf.get_default_graph().as_default() as graph:
-        # global_steps = tf.train.get_or_create_global_step(graph=graph)
+    config = TestingConfig()
 
-        config = TestingConfig()
+    X = np.ones([config.batch_size, 10,
+                 config.input_dims], dtype=np.float32)
+    indices = np.array([[n, 1]
+                        for n in range(config.batch_size)], dtype=np.int64)
+    values = np.array(
+        [1 for _ in range(config.batch_size)], dtype=np.int32)
+    shape = np.array(
+        [config.batch_size, config.num_classes], dtype=np.int64)
+    Y = tf.SparseTensorValue(indices, values, shape)
 
-        X = np.ones([config.batch_size, 10,
-                     config.input_dims], dtype=np.float32)
-        indices = np.array([[n, 1]
-                            for n in range(config.batch_size)], dtype=np.int64)
-        values = np.array(
-            [1 for _ in range(config.batch_size)], dtype=np.int32)
-        shape = np.array(
-            [config.batch_size, config.num_classes], dtype=np.int64)
-        Y = tf.SparseTensorValue(indices, values, shape)
+    seq_len = [10 for _ in range(config.batch_size)]
 
-        seq_len = [10 for _ in range(config.batch_size)]
+    model = HWRModel(config)
 
-        model = HWRModel(config)
-
-        init = tf.global_variables_initializer()
-        # Session
-        with tf.Session() as sess:
-            sess.run(init)
-            for _ in range(config.total_epoches):
-                # logits = model.predict(sess, X, seq_len)
-                losses = model.step(sess, X, seq_len, Y)
-                print(losses)
+    init = tf.global_variables_initializer()
+    # Session
+    with tf.Session() as sess:
+        sess.run(init)
+        for _ in range(config.total_epoches):
+            # logits = model.predict(sess, X, seq_len)
+            losses = model.step(sess, X, seq_len, Y)
+            print(losses)
 
 
 if __name__ == "__main__":
