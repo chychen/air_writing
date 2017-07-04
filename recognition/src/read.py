@@ -16,7 +16,7 @@ for row in k:
     gg = row.strip('\n')
     s.append(gg)
     for aaa in gg:
-        if aaa in ['[',']']:
+        if aaa in ['[', ']']:
             input()
     if len(gg) > themax:
         print(len(gg))
@@ -28,7 +28,7 @@ l += ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 for sentence in s:
     for char in sentence:
         if char not in l:
-            print(sentence,"  ",char)
+            print(sentence, "  ", char)
 
 dense = np.zeros((len(s), 64))
 length = np.zeros(len(s))
