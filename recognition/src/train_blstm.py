@@ -29,9 +29,9 @@ tf.app.flags.DEFINE_integer("input_dims", 3,
                             "input dimensions")
 tf.app.flags.DEFINE_integer("num_classes", 69,  # 68 letters + 1 blank
                             "num_labels + 1(blank)")
-tf.app.flags.DEFINE_integer('log_freq', 1,
+tf.app.flags.DEFINE_integer('log_freq', 10,
                             "how many times showing the mean loss per epoch")
-tf.app.flags.DEFINE_float('learning_rate', 0.01,
+tf.app.flags.DEFINE_float('learning_rate', 0.005,
                           "learning rate of RMSPropOptimizer")
 tf.app.flags.DEFINE_float('decay_rate', 0.99,
                           "decay rate of RMSPropOptimizer")
@@ -94,7 +94,12 @@ def train_model():
             seq_len_list.append(v.shape[0])
         seq_len_list = np.array(seq_len_list).astype(np.int32)
         k = np.argmax(seq_len_list)
+        kk = np.argmin(seq_len_list)
         max_length = input_data[k].shape[0]
+        min_length = input_data[kk].shape[0]
+        # print(max_length)
+        # print(min_length)
+        # exit()
         # padding each textline to maximum length -> max_length (1939)
         padded_input_data = []
         for _, v in enumerate(input_data):
@@ -149,11 +154,19 @@ def train_model():
                         end_time = time.time()
                         # predict result
                         predict = model.predict(
-                            sess, input_batch, seq_len_batch)
-                        str_decoded = ''.join([letter_table[x] for x in np.asarray(predict[1])])
-                        val_original = ''.join([letter_table[x] for x in dense_batch[1]])
+                            sess, padded_input_data[batch_idx:batch_idx+1], seq_len_list[batch_idx:batch_idx+1])
+                        str_decoded = ''.join(
+                            [letter_table[x] for x in np.asarray(predict.values)])
+                        val_original = ''.join(
+                            [letter_table[x] for x in dense_batch[0]])
                         print('Original val: %s' % val_original)
                         print('Decoded val: %s' % str_decoded)
+
+                        # print(predict.indices)
+                        # print(np.asarray(predict.values))
+                        # print(predict.dense_shape)
+                        # print(np.asarray(predict.values).shape)
+                        # input()
 
                         print("%d epoches, %d steps, mean loss: %f, time cost: %f(sec)" %
                               (e,

@@ -15,6 +15,7 @@ STROKES_DATA_PATH = os.path.join(DATA_PATH, "lineStrokes/")
 
 ESCAPE_CHAR = '~!@#$%^&*()_+{}:"<>?`-=[];\',./|\n'
 
+
 def find_textline_by_id(filename):
     """
     Inputs:
@@ -91,15 +92,20 @@ def main():
                 x_list_moved = x_list_moved[1:]
                 # x_list throw away the last element
                 x_list_new = np.subtract(x_list_moved, x_list[:-1])
-                x_list_new = np.divide(x_list_new, time_list_new)
+                # x_list_new = np.divide(x_list_new, time_list_new)
                 # y 1st order
                 y_list_moved = np.array(y_list)
                 y_list_moved = y_list_moved[1:]
                 y_list_new = np.subtract(y_list_moved, y_list[:-1])
-                y_list_new = np.divide(y_list_new, time_list_new)
+                # y_list_new = np.divide(y_list_new, time_list_new)
                 # stack x', y', time
                 text_line_data = np.stack(
                     (x_list_new, y_list_new, time_list[:-1]), axis=1)
+                # text_line_data = np.stack(
+                #     (x_list, y_list, time_list), axis=1)
+                temp_length = text_line_data.shape[0]
+                # subsampling
+                text_line_data = text_line_data[[i % 3 == 0 for i in range(temp_length)]]
                 text_line_data_all.append(text_line_data)
                 # print(text_line_data)
                 # print(text_line_data.shape)
@@ -111,6 +117,7 @@ def main():
     label_text_line_all = np.array(label_text_line_all)
     print(text_line_data_all.shape)
     print(label_text_line_all.shape)
+    # save as .npy
     np.save("data", text_line_data_all)
     np.save("label", label_text_line_all)
     print("Successfully saved!")
