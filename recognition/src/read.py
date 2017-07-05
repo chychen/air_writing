@@ -3,6 +3,7 @@ import numpy as np
 f = open('../data/letters.txt', 'r')
 
 l = []
+l.append("@")
 l.append(" ")
 for row in f:
     print(l.append(row.strip('\n')))
@@ -30,7 +31,7 @@ for sentence in s:
         if char not in l:
             print(sentence, "  ", char)
 
-dense = np.zeros((len(s), 64))
+dense = np.zeros((len(s), 64),dtype=np.int32)
 length = np.zeros(len(s))
 print(l)
 for idl, sentence in enumerate(s):
@@ -66,6 +67,7 @@ for idl, sentence in enumerate(s):
 
 print(dense)
 alldata = {}
+
 alldata['dense'] = dense
 alldata['length'] = length
 np.save("dense.npy", alldata)
