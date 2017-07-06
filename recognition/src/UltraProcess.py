@@ -177,8 +177,12 @@ def main():
                     for idx, x_v in enumerate(x_sp):
                         y_v = y_sp[idx]
                         slope = np.sqrt(x_v * x_v + y_v * y_v)
-                        w_sin_stroke.append(y_v / slope)
-                        w_cos_stroke.append(x_v / slope)
+                        if slope != 0:
+                            w_sin_stroke.append(y_v / slope)
+                            w_cos_stroke.append(x_v / slope)
+                        else:
+                            w_sin_stroke.append(0)
+                            w_cos_stroke.append(1)
                     writing_sin += w_sin_stroke
                     writing_cos += w_cos_stroke
 
