@@ -109,7 +109,7 @@ def main():
 
                     angle_stroke = []
                     if len(x_point) < 3:
-                        print("Oh no",len(x_point))
+                        # print("Oh no",len(x_point))
                         for _ in range(len(x_point)):
                             sin_list += [0]
                             cos_list += [1]
@@ -140,8 +140,9 @@ def main():
                             x_sp_list += [0]
                             y_sp_list += [0]
                         if len(x_point) < 1:
-                            print("fuck 0")
-                            fuck = input("Zero")
+                            print("Meet 0")
+                            exit()
+                            
                     else:
                         x_sp_stroke = []
                         y_sp_stroke = []
