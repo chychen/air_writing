@@ -73,7 +73,8 @@ def main():
                         first_time = float(atype.get('time'))
                         time_stamp.append(0.0)
                     else:
-                        time_stamp.append(float(atype.get('time')) - first_time)
+                        time_stamp.append(
+                            float(atype.get('time')) - first_time)
                     # print("x:", atype.get('x'), "y:", atype.get('y'), "time:", float(atype.get('time')) - first_time)
                     # input()
                 ####curvature and speed #######################################
@@ -94,8 +95,11 @@ def main():
                 cos_list = []
                 x_sp_list = []
                 y_sp_list = []
+                pen_up_list = []
+                writing_sin = []
+                writing_cos = []
                 for stroke in e_tree.findall('StrokeSet/Stroke'):
-                    x_point, y_point,time_list = [], [], []
+                    x_point, y_point, time_list = [], [], []
                     for point in stroke.findall('Point'):
                         x_point.append(int(point.get('x')))
                         y_point.append(int(point.get('y')))
@@ -139,16 +143,18 @@ def main():
                         for _ in range(len(x_point)):
                             x_sp_list += [0]
                             y_sp_list += [0]
+                            
                         if len(x_point) < 1:
                             print("Meet 0")
                             exit()
-                            
+                        x_sp = [0]
+                        y_sp = [0]
+
                     else:
-                        x_sp_stroke = []
-                        y_sp_stroke = []
                         time_list = np.asarray(time_list, dtype=np.float32)
                         time_list_moved = np.array(time_list)[1:]
-                        time_diff = np.subtract(time_list_moved, time_list[:-1])
+                        time_diff = np.subtract(
+                            time_list_moved, time_list[:-1])
                         for idx, v in enumerate(time_diff):
                             if v == 0:
                                 time_diff[idx] = 0.001
@@ -162,15 +168,30 @@ def main():
                         y_sp = [0] + y_sp
                         x_sp_list += x_sp
                         y_sp_list += y_sp
+                    # pen up and down
+                    pen_up = [1] * (len(x_point) - 1) + [0]
+                    pen_up_list += pen_up
+                    # writing direction
+                    w_sin_stroke = []
+                    w_cos_stroke = []
+                    for idx, x_v in enumerate(x_sp):
+                        y_v = y_sp[idx]
+                        slope = np.sqrt(x_v * x_v + y_v * y_v)
+                        w_sin_stroke.append(y_v / slope)
+                        w_cos_stroke.append(x_v / slope)
+                    writing_sin += w_sin_stroke
+                    writing_cos += w_cos_stroke
+
                 ####curvature done####################
                 time_stamp = np.asarray(time_stamp, dtype=np.float32)
                 sin_list = np.asarray(sin_list, dtype=np.float32)
                 cos_list = np.asarray(cos_list, dtype=np.float32)
                 x_sp_list = np.asarray(x_sp_list, dtype=np.float32)
                 y_sp_list = np.asarray(y_sp_list, dtype=np.float32)
-
+                pen_up_list = np.asarray(pen_up_list, dtype=np.float32)
+                writing_cos = np.asarray(writing_cos, dtype=np.float32)
+                writing_sin = np.asarray(writing_sin, dtype=np.float32)
                 # x y coordinate
-
 
                 # time_list = np.asarray(time_list, dtype=np.float32)
                 # # time 1st order
@@ -199,21 +220,25 @@ def main():
                 # print(sin_list.shape)
                 # print(cos_list.shape)
                 # print(time_stamp.shape)
+                # print(writing_sin.shape)
+                # print(writing_cos.shape)
+                # print(pen_up_list.shape)
                 text_line_data = np.stack(
-                    (x_sp_list, y_sp_list, x_cor, y_cor, sin_list, cos_list, time_stamp), axis=1)
+                    (x_sp_list, y_sp_list, x_cor, y_cor, sin_list, cos_list, writing_sin, writing_cos, pen_up_list, time_stamp), axis=1)
+                # (x_cor, y_cor, sin_list, cos_list, time_stamp), axis=1)
                 # text_line_data = np.stack(
                 #     (x_list, y_list, time_list), axis=1)
                 temp_length = text_line_data.shape[0]
                 # subsampling
-                text_line_data = text_line_data[[
-                    i % 3 == 0 for i in range(temp_length)]]
+                # text_line_data = text_line_data[[
+                #     i % 3 == 0 for i in range(temp_length)]]
                 text_line_data_all.append(text_line_data)
-        print("Finished a file ",files)
-                # print(text_line_data)
-                # print(text_line_data.shape)
-                # print(text_line_path)
-                # print(np.array(text_line_data_all).shape)
-                # input()
+        print("Finished a file ", files)
+        # print(text_line_data)
+        # print(text_line_data.shape)
+        # print(text_line_path)
+        # print(np.array(text_line_data_all).shape)
+        # input()
 
     text_line_data_all = np.array(text_line_data_all)
     label_text_line_all = np.array(label_text_line_all)
