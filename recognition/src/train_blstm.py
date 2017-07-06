@@ -25,7 +25,7 @@ tf.app.flags.DEFINE_integer('hidden_size', 128,
                             "size of LSTM hidden memory")
 tf.app.flags.DEFINE_integer('num_layers', 1,
                             "number of stacked blstm")
-tf.app.flags.DEFINE_integer("input_dims", 7,
+tf.app.flags.DEFINE_integer("input_dims", 10,
                             "input dimensions")
 tf.app.flags.DEFINE_integer("num_classes", 69,  # 68 letters + 1 blank
                             "num_labels + 1(blank)")
@@ -112,6 +112,11 @@ def train_model():
             padded_input_data.append(
                 np.concatenate([v, padding_array], axis=0))
         padded_input_data = np.array(padded_input_data)
+        # padded_input_data = input_data
+
+        # print(padded_input_data[0].shape)
+        # print(seq_len_list[0])
+        # exit()
         # number of batches
         num_batch = int(label_data.shape[0] / config.batch_size)
         # model
@@ -130,7 +135,7 @@ def train_model():
             for e in range(config.total_epoches):
                 # Shuffle the data
                 shuffled_indexes = np.random.permutation(input_data.shape[0])
-                input_data = input_data[shuffled_indexes]
+                padded_input_data = padded_input_data[shuffled_indexes]
                 seq_len_list = seq_len_list[shuffled_indexes]
                 label_data = label_data[shuffled_indexes]
                 # label_seq_len = label_seq_len[shuffled_indexes]
@@ -139,9 +144,14 @@ def train_model():
                     # input
                     input_batch = padded_input_data[batch_idx:batch_idx +
                                                     config.batch_size]
+                    # input_batch = input_batch[0][np.newaxis]
+
+                    # print(input_batch.shape)
                     # sequence length
                     seq_len_batch = seq_len_list[batch_idx:batch_idx +
                                                  config.batch_size]
+                    # print(seq_len_batch)
+                    # exit()
                     # label
                     dense_batch = label_data[batch_idx:batch_idx +
                                              config.batch_size]
@@ -158,7 +168,7 @@ def train_model():
                         end_time = time.time()
                         # predict result
                         predict = model.predict(
-                            sess, padded_input_data[batch_idx:batch_idx + 1], seq_len_list[batch_idx:batch_idx + 1])
+                            sess, input_batch[0:1], seq_len_batch[0:1])
                         str_decoded = ''.join(
                             [letter_table[x] for x in np.asarray(predict.values)])
                         val_original = ''.join(
