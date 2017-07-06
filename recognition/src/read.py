@@ -32,7 +32,7 @@ for sentence in s:
             print(sentence, "  ", char)
 
 dense = np.zeros((len(s), 64),dtype=np.int32)
-dense[:] = numpy.NAN
+dense[:] = np.NAN
 length = np.zeros(len(s))
 print(l)
 for idl, sentence in enumerate(s):
