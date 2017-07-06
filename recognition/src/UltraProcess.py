@@ -208,6 +208,7 @@ def main():
                 text_line_data = text_line_data[[
                     i % 3 == 0 for i in range(temp_length)]]
                 text_line_data_all.append(text_line_data)
+        print("Finished a file ",files)
                 # print(text_line_data)
                 # print(text_line_data.shape)
                 # print(text_line_path)
