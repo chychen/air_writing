@@ -25,13 +25,13 @@ tf.app.flags.DEFINE_integer('hidden_size', 128,
                             "size of LSTM hidden memory")
 tf.app.flags.DEFINE_integer('num_layers', 1,
                             "number of stacked blstm")
-tf.app.flags.DEFINE_integer("input_dims", 3,
+tf.app.flags.DEFINE_integer("input_dims", 7,
                             "input dimensions")
 tf.app.flags.DEFINE_integer("num_classes", 69,  # 68 letters + 1 blank
                             "num_labels + 1(blank)")
 tf.app.flags.DEFINE_integer('log_freq', 10,
                             "how many times showing the mean loss per epoch")
-tf.app.flags.DEFINE_float('learning_rate', 0.005,
+tf.app.flags.DEFINE_float('learning_rate', 0.001,
                           "learning rate of RMSPropOptimizer")
 tf.app.flags.DEFINE_float('decay_rate', 0.99,
                           "decay rate of RMSPropOptimizer")
@@ -88,6 +88,10 @@ def train_model():
         input_data = np.load('data.npy')
         target_data = np.load('dense.npy').item()
         label_data = target_data['dense'].astype(np.int32)
+        # print(input_data.shape)
+        # print(input_data[0].shape)
+        # exit()
+
         # label_seq_len = target_data['length'].astype(np.int32)
         seq_len_list = []
         for _, v in enumerate(input_data):
@@ -104,7 +108,7 @@ def train_model():
         padded_input_data = []
         for _, v in enumerate(input_data):
             residual = max_length - v.shape[0]
-            padding_array = np.zeros([residual, 3])
+            padding_array = np.zeros([residual, FLAGS.input_dims])
             padded_input_data.append(
                 np.concatenate([v, padding_array], axis=0))
         padded_input_data = np.array(padded_input_data)
@@ -154,14 +158,17 @@ def train_model():
                         end_time = time.time()
                         # predict result
                         predict = model.predict(
-                            sess, padded_input_data[batch_idx:batch_idx+1], seq_len_list[batch_idx:batch_idx+1])
+                            sess, padded_input_data[batch_idx:batch_idx + 1], seq_len_list[batch_idx:batch_idx + 1])
                         str_decoded = ''.join(
                             [letter_table[x] for x in np.asarray(predict.values)])
                         val_original = ''.join(
                             [letter_table[x] for x in dense_batch[0]])
                         print('Original val: %s' % val_original)
                         print('Decoded val: %s' % str_decoded)
-
+                        # la = model.getSparse(sess, dense_batch[0:1])
+                        # lala = ''.join(
+                        #     [letter_table[x] for x in la.values])
+                        # print('sparse %s' % lala)
                         # print(predict.indices)
                         # print(np.asarray(predict.values))
                         # print(predict.dense_shape)

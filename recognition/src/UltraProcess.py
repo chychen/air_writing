@@ -205,8 +205,8 @@ def main():
                 #     (x_list, y_list, time_list), axis=1)
                 temp_length = text_line_data.shape[0]
                 # subsampling
-                text_line_data = text_line_data[[
-                    i % 3 == 0 for i in range(temp_length)]]
+                # text_line_data = text_line_data[[
+                #     i % 3 == 0 for i in range(temp_length)]]
                 text_line_data_all.append(text_line_data)
         print("Finished a file ",files)
                 # print(text_line_data)

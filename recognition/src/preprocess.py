@@ -4,9 +4,8 @@ from __future__ import print_function
 
 import os
 import xml.etree.ElementTree as ET
-import numpy as np
 import re
-
+import numpy as np
 
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 DATA_PATH = os.path.join(FILE_PATH, "../data/")
@@ -105,7 +104,7 @@ def main():
                 #     (x_list, y_list, time_list), axis=1)
                 temp_length = text_line_data.shape[0]
                 # subsampling
-                text_line_data = text_line_data[[i % 3 == 0 for i in range(temp_length)]]
+                # text_line_data = text_line_data[[i % 3 == 0 for i in range(temp_length)]]
                 text_line_data_all.append(text_line_data)
                 # print(text_line_data)
                 # print(text_line_data.shape)
