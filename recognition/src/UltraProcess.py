@@ -166,8 +166,8 @@ def main():
                 time_stamp = np.asarray(time_stamp, dtype=np.float32)
                 sin_list = np.asarray(sin_list, dtype=np.float32)
                 cos_list = np.asarray(cos_list, dtype=np.float32)
-                x_sp_list = np.asarray(x_sp_list, dtype=np.float32) / x_max
-                y_sp_list = np.asarray(y_sp_list, dtype=np.float32) / y_max
+                x_sp_list = np.asarray(x_sp_list, dtype=np.float32)
+                y_sp_list = np.asarray(y_sp_list, dtype=np.float32)
 
                 # x y coordinate
 
