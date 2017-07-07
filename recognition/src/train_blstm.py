@@ -29,7 +29,7 @@ tf.app.flags.DEFINE_integer("input_dims", 10,
                             "input dimensions")
 tf.app.flags.DEFINE_integer("num_classes", 69,  # 68 letters + 1 blank
                             "num_labels + 1(blank)")
-tf.app.flags.DEFINE_integer('log_freq', 10,
+tf.app.flags.DEFINE_integer('log_freq', 1,
                             "how many times showing the mean loss per epoch")
 tf.app.flags.DEFINE_float('learning_rate', 0.001,
                           "learning rate of RMSPropOptimizer")
@@ -94,7 +94,6 @@ def train_model():
             seq_len_list.append(v.shape[0])
         seq_len_list = np.array(seq_len_list).astype(np.int32)
         k = np.argmax(seq_len_list)
-        kk = np.argmin(seq_len_list)
         max_length = input_data[k].shape[0]
 
         # padding each textline to maximum length -> max_length (1939)
@@ -121,7 +120,7 @@ def train_model():
             # time cost evaluation
             start_time = time.time()
             end_time = 0.0
-            for e in range(config.total_epoches):
+            for ephoch in range(config.total_epoches):
                 # Shuffle the data
                 shuffled_indexes = np.random.permutation(input_data.shape[0])
                 padded_input_data = padded_input_data[shuffled_indexes]
@@ -147,19 +146,20 @@ def train_model():
                     if (gloebal_step % FLAGS.log_freq) == 0:
                         end_time = time.time()
                         # predict result
-                        predict = model.predict(
-                            sess, input_batch[0:1], seq_len_batch[0:1])
+                        predict, levenshtein = model.predict(
+                            sess, input_batch[0:1], seq_len_batch[0:1], dense_batch[0:1])
                         str_decoded = ''.join(
                             [letter_table[x] for x in np.asarray(predict.values)])
                         val_original = ''.join(
                             [letter_table[x] for x in dense_batch[0]])
                         print('Original val: %s' % val_original)
                         print('Decoded  val: %s' % str_decoded)
-                        print("%d epoches, %d steps, mean loss: %f, time cost: %f(sec)" %
-                              (e,
+                        print("%d epoches, %d steps, mean loss: %f, time cost: %f(sec), levenshtein: %f" %
+                              (ephoch,
                                gloebal_step,
                                loss_sum / counter,
-                               end_time - start_time))
+                               end_time - start_time,
+                               levenshtein))
                         loss_sum = 0.0
                         counter = 0
                         start_time = end_time

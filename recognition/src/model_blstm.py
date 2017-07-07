@@ -32,7 +32,8 @@ class HWRModel(object):
             None], name='sequence_lenth')
         self.label_ph = tf.placeholder(dtype=tf.int32, shape=[
             self.batch_size, 64], name='label_data')
-        indices = tf.where(tf.not_equal(self.label_ph, -1)) # -1 -> sparse value in dense presentation
+        # transform label from dense to sparse form
+        indices = tf.where(tf.not_equal(self.label_ph, -1)) # -1 -> sparse slots in dense presentation
         self.label_sparse = tf.SparseTensor(indices, tf.gather_nd(
             self.label_ph, indices), self.label_ph.shape)
 
@@ -104,9 +105,9 @@ class HWRModel(object):
             print(decoded[0])
         self.decoded_op = decoded
 
-        # # TODO Inaccuracy: label error rate
-        # ler = tf.reduce_mean(tf.edit_distance(tf.cast(decoded[0], tf.int32),
-        #                                       targets))
+        # levenshtein distance
+        self.levenshtein = tf.reduce_mean(tf.edit_distance(tf.cast(decoded[0], tf.int32),
+                                              self.label_sparse))
 
         # summary
         self.merged_op = tf.summary.merge_all()
@@ -114,10 +115,12 @@ class HWRModel(object):
         self.train_summary_writer = tf.summary.FileWriter(
             self.log_dir + 'train', graph=graph)
 
-    def predict(self, sess, inputs, seq_len):
+    def predict(self, sess, inputs, seq_len, labels):
         feed_dict = {self.input_ph: inputs,
-                     self.seq_len_ph: seq_len}
-        return sess.run(self.decoded_op[0], feed_dict=feed_dict)
+                     self.seq_len_ph: seq_len,
+                     self.label_ph: labels}
+        decoded_seq, lev = sess.run([self.decoded_op[0], self.levenshtein], feed_dict=feed_dict)
+        return decoded_seq, lev
 
     def step(self, sess, inputs, seq_len, labels):
         feed_dict = {self.input_ph: inputs,
