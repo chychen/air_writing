@@ -84,13 +84,9 @@ def train_model():
         config = ModelConfig()
         config.show()
         # load data
-        # [textline_id, length, 3], 3->(x', y', time)
         input_data = np.load('data.npy')
         target_data = np.load('dense.npy').item()
         label_data = target_data['dense'].astype(np.int32)
-        # print(input_data.shape)
-        # print(input_data[0].shape)
-        # exit()
 
         # label_seq_len = target_data['length'].astype(np.int32)
         seq_len_list = []
@@ -100,10 +96,7 @@ def train_model():
         k = np.argmax(seq_len_list)
         kk = np.argmin(seq_len_list)
         max_length = input_data[k].shape[0]
-        min_length = input_data[kk].shape[0]
-        # print(max_length)
-        # print(min_length)
-        # exit()
+
         # padding each textline to maximum length -> max_length (1939)
         padded_input_data = []
         for _, v in enumerate(input_data):
@@ -112,11 +105,7 @@ def train_model():
             padded_input_data.append(
                 np.concatenate([v, padding_array], axis=0))
         padded_input_data = np.array(padded_input_data)
-        # padded_input_data = input_data
 
-        # print(padded_input_data[0].shape)
-        # print(seq_len_list[0])
-        # exit()
         # number of batches
         num_batch = int(label_data.shape[0] / config.batch_size)
         # model
@@ -127,7 +116,7 @@ def train_model():
         with tf.Session() as sess:
             sess.run(init)
             # loss evaluation
-            epoches_loss_sum = 0.0
+            loss_sum = 0.0
             counter = 0
             # time cost evaluation
             start_time = time.time()
@@ -138,31 +127,22 @@ def train_model():
                 padded_input_data = padded_input_data[shuffled_indexes]
                 seq_len_list = seq_len_list[shuffled_indexes]
                 label_data = label_data[shuffled_indexes]
-                # label_seq_len = label_seq_len[shuffled_indexes]
                 for b in range(num_batch):
                     batch_idx = b * config.batch_size
                     # input
                     input_batch = padded_input_data[batch_idx:batch_idx +
                                                     config.batch_size]
-                    # input_batch = input_batch[0][np.newaxis]
-
-                    # print(input_batch.shape)
                     # sequence length
                     seq_len_batch = seq_len_list[batch_idx:batch_idx +
                                                  config.batch_size]
-                    # print(seq_len_batch)
-                    # exit()
                     # label
                     dense_batch = label_data[batch_idx:batch_idx +
                                              config.batch_size]
-                    # label_seq_len_batch = label_seq_len[batch_idx:batch_idx +
-                    #                                     config.batch_size]
                     # train
                     gloebal_step, losses = model.step(sess, input_batch,
                                                       seq_len_batch, dense_batch)
-                    epoches_loss_sum += losses
+                    loss_sum += losses
                     counter += 1
-
                     # logging
                     if (gloebal_step % FLAGS.log_freq) == 0:
                         end_time = time.time()
@@ -174,23 +154,13 @@ def train_model():
                         val_original = ''.join(
                             [letter_table[x] for x in dense_batch[0]])
                         print('Original val: %s' % val_original)
-                        print('Decoded val: %s' % str_decoded)
-                        # la = model.getSparse(sess, dense_batch[0:1])
-                        # lala = ''.join(
-                        #     [letter_table[x] for x in la.values])
-                        # print('sparse %s' % lala)
-                        # print(predict.indices)
-                        # print(np.asarray(predict.values))
-                        # print(predict.dense_shape)
-                        # print(np.asarray(predict.values).shape)
-                        # input()
-
+                        print('Decoded  val: %s' % str_decoded)
                         print("%d epoches, %d steps, mean loss: %f, time cost: %f(sec)" %
                               (e,
                                gloebal_step,
-                               epoches_loss_sum / counter,
+                               loss_sum / counter,
                                end_time - start_time))
-                        epoches_loss_sum = 0.0
+                        loss_sum = 0.0
                         counter = 0
                         start_time = end_time
 
