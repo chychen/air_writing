@@ -31,8 +31,6 @@ tf.app.flags.DEFINE_integer("input_dims", 10,
                             "input dimensions")
 tf.app.flags.DEFINE_integer("num_classes", 69,  # 68 letters + 1 blank
                             "num_labels + 1(blank)")
-tf.app.flags.DEFINE_integer('log_freq', 50,
-                            "how many times showing the mean loss per epoch")
 tf.app.flags.DEFINE_integer('save_freq', 250,
                             "frequency of saving model")
 tf.app.flags.DEFINE_float('learning_rate', 0.001,
@@ -62,7 +60,6 @@ class ModelConfig(object):
         self.num_layers = FLAGS.num_layers
         self.input_dims = FLAGS.input_dims
         self.num_classes = FLAGS.num_classes
-        self.log_freq = FLAGS.log_freq
         self.save_freq = FLAGS.save_freq
         self.learning_rate = FLAGS.learning_rate
         self.decay_rate = FLAGS.decay_rate
@@ -79,7 +76,6 @@ class ModelConfig(object):
         print("num_layers:", self.num_layers)
         print("input_dims:", self.input_dims)
         print("num_classes:", self.num_classes)
-        print("log_freq:", self.log_freq)
         print("save_freq:", self.save_freq)
         print("learning_rate:", self.learning_rate)
         print("decay_rate:", self.decay_rate)
@@ -113,8 +109,16 @@ def train_model():
                 np.concatenate([v, padding_array], axis=0))
         padded_input_data = np.array(padded_input_data)
 
+        train_data, valid_data = np.split(
+            padded_input_data, [padded_input_data.shape[0] * 9 // 10])
+        train_seq_len, valid_seq_len = np.split(
+            seq_len_list, [seq_len_list.shape[0] * 9 // 10])
+        train_label, valid_label = np.split(
+            label_data, [label_data.shape[0] * 9 // 10])
+
         # number of batches
-        num_batch = int(label_data.shape[0] / config.batch_size)
+        train_num_batch = int(train_label.shape[0] / config.batch_size)
+        valid_num_batch = int(valid_label.shape[0] / config.batch_size)
         # model
         model = model_blstm.HWRModel(config, graph)
         # Add an op to initialize the variables.
@@ -128,37 +132,46 @@ def train_model():
             if FLAGS.restore_path is not None:
                 saver.restore(sess, FLAGS.restore_path)
                 print("Model restored:", FLAGS.restore_path)
-            # loss evaluation
-            loss_sum = 0.0
-            counter = 0
             # time cost evaluation
             start_time = time.time()
             end_time = 0.0
             for ephoch in range(config.total_epoches):
                 # Shuffle the data
                 shuffled_indexes = np.random.permutation(input_data.shape[0])
-                padded_input_data = padded_input_data[shuffled_indexes]
-                seq_len_list = seq_len_list[shuffled_indexes]
-                label_data = label_data[shuffled_indexes]
-                for b in range(num_batch):
+                train_data = train_data[shuffled_indexes]
+                train_seq_len = train_seq_len[shuffled_indexes]
+                train_label = train_label[shuffled_indexes]
+                loss_sum = 0.0
+                for b in range(train_num_batch):
                     batch_idx = b * config.batch_size
-                    # input
-                    input_batch = padded_input_data[batch_idx:batch_idx +
-                                                    config.batch_size]
-                    # sequence length
-                    seq_len_batch = seq_len_list[batch_idx:batch_idx +
-                                                 config.batch_size]
-                    # label
-                    dense_batch = label_data[batch_idx:batch_idx +
+                    # input, sequence length, label
+                    input_batch = train_data[batch_idx:batch_idx +
                                              config.batch_size]
+                    seq_len_batch = train_seq_len[batch_idx:batch_idx +
+                                                  config.batch_size]
+                    dense_batch = train_label[batch_idx:batch_idx +
+                                              config.batch_size]
                     # train
                     global_step, losses = model.step(sess, input_batch,
                                                      seq_len_batch, dense_batch)
                     loss_sum += losses
-                    counter += 1
-                    # logging
-                    if (global_step % FLAGS.log_freq) == 0:
-                        end_time = time.time()
+                    # logging per ephoch
+                    if (global_step % train_num_batch) == 0:
+                        # validation
+                        v_loss_sum = 0.0
+                        for v_b in range(valid_num_batch):
+                            v_batch_idx = v_b * config.batch_size
+                            # input, sequence length, label
+                            v_input_batch = valid_data[v_batch_idx:v_batch_idx +
+                                                     config.batch_size]
+                            v_seq_len_batch = valid_seq_len[v_batch_idx:v_batch_idx +
+                                                          config.batch_size]
+                            v_dense_batch = valid_label[v_batch_idx:v_batch_idx +
+                                                      config.batch_size]
+                            v_losses = model.compute_losses(sess, v_input_batch,
+                                                     v_seq_len_batch, v_dense_batch)
+                            v_loss_sum += v_losses
+
                         # predict result
                         predict, levenshtein = model.predict(
                             sess, input_batch[0:1], seq_len_batch[0:1], dense_batch[0:1])
@@ -166,17 +179,18 @@ def train_model():
                             [letter_table[x] for x in np.asarray(predict.values)])
                         val_original = ''.join(
                             [letter_table[x] for x in dense_batch[0]])
+                        end_time = time.time()
                         print('Original val: %s' % val_original)
                         print('Decoded  val: %s' % str_decoded)
-                        print("%d epoches, %d steps, mean loss: %f, time cost: %f(sec), levenshtein: %f" %
+                        print("%d epoches, %d steps, mean loss: %f, valid mean loss: %f, time cost: %f(sec/batch), levenshtein: %f" %
                               (ephoch,
                                global_step,
-                               loss_sum / counter,
-                               end_time - start_time,
+                               loss_sum / train_num_batch,
+                               v_loss_sum / valid_num_batch,
+                               (end_time - start_time) / train_num_batch,
                                levenshtein))
-                        loss_sum = 0.0
-                        counter = 0
                         start_time = end_time
+                        loss_sum = 0.0
                     if (global_step % FLAGS.save_freq) == 0:
                         save_path = saver.save(
                             sess, FLAGS.checkpoints_dir + "model.ckpt",
