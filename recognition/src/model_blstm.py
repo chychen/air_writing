@@ -33,9 +33,18 @@ class HWRModel(object):
         self.label_ph = tf.placeholder(dtype=tf.int32, shape=[
             self.batch_size, 64], name='label_data')
         # transform label from dense to sparse form
-        indices = tf.where(tf.not_equal(self.label_ph, -1)) # -1 -> sparse slots in dense presentation
+        # -1 -> sparse slots in dense presentation
+        indices = tf.where(tf.not_equal(self.label_ph, -1))
         self.label_sparse = tf.SparseTensor(indices, tf.gather_nd(
             self.label_ph, indices), self.label_ph.shape)
+
+        # testing only
+        self.label_ph_test = tf.placeholder(dtype=tf.int32, shape=[
+            1, 64], name='label_data')
+        # -1 -> sparse slots in dense presentation
+        indices_test = tf.where(tf.not_equal(self.label_ph_test, -1))
+        self.label_sparse_test = tf.SparseTensor(indices_test, tf.gather_nd(
+            self.label_ph_test, indices_test), self.label_ph_test.shape)
 
         # inference
         def lstm_cell():
@@ -107,7 +116,7 @@ class HWRModel(object):
 
         # levenshtein distance
         self.levenshtein = tf.reduce_mean(tf.edit_distance(tf.cast(decoded[0], tf.int32),
-                                              self.label_sparse))
+                                                           self.label_sparse_test))
 
         # summary
         self.merged_op = tf.summary.merge_all()
@@ -118,8 +127,9 @@ class HWRModel(object):
     def predict(self, sess, inputs, seq_len, labels):
         feed_dict = {self.input_ph: inputs,
                      self.seq_len_ph: seq_len,
-                     self.label_ph: labels}
-        decoded_seq, lev = sess.run([self.decoded_op[0], self.levenshtein], feed_dict=feed_dict)
+                     self.label_ph_test: labels}
+        decoded_seq, lev = sess.run(
+            [self.decoded_op[0], self.levenshtein], feed_dict=feed_dict)
         return decoded_seq, lev
 
     def step(self, sess, inputs, seq_len, labels):
@@ -138,6 +148,7 @@ class TestingConfig(object):
     """
     testing config
     """
+
     def __init__(self):
         self.data_dir = '../data/'
         self.checkpoints_dir = '../checkpoints/'

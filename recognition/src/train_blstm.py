@@ -17,6 +17,8 @@ tf.app.flags.DEFINE_string('checkpoints_dir', '../checkpoints/',
                            "training checkpoints directory")
 tf.app.flags.DEFINE_string('log_dir', '../train_log/',
                            "summary directory")
+tf.app.flags.DEFINE_string('restore_path', None,
+                           "path of saving model eg: ../checkpoints/model.ckpt-5")
 tf.app.flags.DEFINE_integer('batch_size', 128,
                             "mini-batch size")
 tf.app.flags.DEFINE_integer('total_epoches', 300,
@@ -29,8 +31,10 @@ tf.app.flags.DEFINE_integer("input_dims", 10,
                             "input dimensions")
 tf.app.flags.DEFINE_integer("num_classes", 69,  # 68 letters + 1 blank
                             "num_labels + 1(blank)")
-tf.app.flags.DEFINE_integer('log_freq', 1,
+tf.app.flags.DEFINE_integer('log_freq', 50,
                             "how many times showing the mean loss per epoch")
+tf.app.flags.DEFINE_integer('save_freq', 250,
+                            "frequency of saving model")
 tf.app.flags.DEFINE_float('learning_rate', 0.001,
                           "learning rate of RMSPropOptimizer")
 tf.app.flags.DEFINE_float('decay_rate', 0.99,
@@ -51,6 +55,7 @@ class ModelConfig(object):
         self.data_dir = FLAGS.data_dir
         self.checkpoints_dir = FLAGS.checkpoints_dir
         self.log_dir = FLAGS.log_dir
+        self.restore_path = FLAGS.restore_path
         self.batch_size = FLAGS.batch_size
         self.total_epoches = FLAGS.total_epoches
         self.hidden_size = FLAGS.hidden_size
@@ -58,6 +63,7 @@ class ModelConfig(object):
         self.input_dims = FLAGS.input_dims
         self.num_classes = FLAGS.num_classes
         self.log_freq = FLAGS.log_freq
+        self.save_freq = FLAGS.save_freq
         self.learning_rate = FLAGS.learning_rate
         self.decay_rate = FLAGS.decay_rate
         self.momentum = FLAGS.momentum
@@ -66,6 +72,7 @@ class ModelConfig(object):
         print("data_dir:", self.data_dir)
         print("checkpoints_dir:", self.checkpoints_dir)
         print("log_dir:", self.log_dir)
+        print("restore_path:", self.restore_path)
         print("batch_size:", self.batch_size)
         print("total_epoches:", self.total_epoches)
         print("hidden_size:", self.hidden_size)
@@ -73,6 +80,7 @@ class ModelConfig(object):
         print("input_dims:", self.input_dims)
         print("num_classes:", self.num_classes)
         print("log_freq:", self.log_freq)
+        print("save_freq:", self.save_freq)
         print("learning_rate:", self.learning_rate)
         print("decay_rate:", self.decay_rate)
         print("momentum:", self.momentum)
@@ -109,11 +117,17 @@ def train_model():
         num_batch = int(label_data.shape[0] / config.batch_size)
         # model
         model = model_blstm.HWRModel(config, graph)
-
+        # Add an op to initialize the variables.
         init = tf.global_variables_initializer()
+        # Add ops to save and restore all the variables.
+        saver = tf.train.Saver()
         # Session
         with tf.Session() as sess:
             sess.run(init)
+            # restore model if exist
+            if FLAGS.restore_path is not None:
+                saver.restore(sess, FLAGS.restore_path)
+                print("Model restored:", FLAGS.restore_path)
             # loss evaluation
             loss_sum = 0.0
             counter = 0
@@ -138,12 +152,12 @@ def train_model():
                     dense_batch = label_data[batch_idx:batch_idx +
                                              config.batch_size]
                     # train
-                    gloebal_step, losses = model.step(sess, input_batch,
-                                                      seq_len_batch, dense_batch)
+                    global_step, losses = model.step(sess, input_batch,
+                                                     seq_len_batch, dense_batch)
                     loss_sum += losses
                     counter += 1
                     # logging
-                    if (gloebal_step % FLAGS.log_freq) == 0:
+                    if (global_step % FLAGS.log_freq) == 0:
                         end_time = time.time()
                         # predict result
                         predict, levenshtein = model.predict(
@@ -156,13 +170,18 @@ def train_model():
                         print('Decoded  val: %s' % str_decoded)
                         print("%d epoches, %d steps, mean loss: %f, time cost: %f(sec), levenshtein: %f" %
                               (ephoch,
-                               gloebal_step,
+                               global_step,
                                loss_sum / counter,
                                end_time - start_time,
                                levenshtein))
                         loss_sum = 0.0
                         counter = 0
                         start_time = end_time
+                    if (global_step % FLAGS.save_freq) == 0:
+                        save_path = saver.save(
+                            sess, FLAGS.checkpoints_dir + "model.ckpt",
+                            global_step=global_step)
+                        print("Model saved in file: %s" % save_path)
 
 
 def main(_):
