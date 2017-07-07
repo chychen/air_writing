@@ -137,7 +137,7 @@ def train_model():
             end_time = 0.0
             for ephoch in range(config.total_epoches):
                 # Shuffle the data
-                shuffled_indexes = np.random.permutation(input_data.shape[0])
+                shuffled_indexes = np.random.permutation(train_data.shape[0])
                 train_data = train_data[shuffled_indexes]
                 train_seq_len = train_seq_len[shuffled_indexes]
                 train_label = train_label[shuffled_indexes]
