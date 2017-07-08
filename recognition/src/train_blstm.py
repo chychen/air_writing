@@ -194,14 +194,16 @@ def train_model():
                         levenshtein))
                 start_time = end_time
                 train_summary = tf.Summary(value=[tf.Summary.Value(tag="ephoch_mean_loss", simple_value=loss_sum / train_num_batch)
-                valid_summary = tf.Summary(value=[tf.Summary.Value(tag="ephoch_mean_loss", simple_value=v_loss_sum / valid_num_batch)
-                train_summary_writer.add_summary(train_summary, global_step=ephoch)
-                valid_summary_writer.add_summary(valid_summary, global_step=ephoch)
+                valid_summary=tf.Summary(value=[tf.Summary.Value(tag="ephoch_mean_loss", simple_value=v_loss_sum / valid_num_batch)
+                train_summary_writer.add_summary(
+                    train_summary, global_step=ephoch)
+                valid_summary_writer.add_summary(
+                    valid_summary, global_step=ephoch)
                 train_summary_writer.flush()
                 valid_summary_writer.flush()
-                
+
                 if (global_step % FLAGS.save_freq) == 0:
-                    save_path = saver.save(
+                    save_path=saver.save(
                         sess, FLAGS.checkpoints_dir + "model.ckpt",
                         global_step=global_step)
                     print("Model saved in file: %s" % save_path)

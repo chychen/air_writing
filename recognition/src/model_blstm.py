@@ -46,6 +46,10 @@ class HWRModel(object):
         self.label_sparse_test = tf.SparseTensor(indices_test, tf.gather_nd(
             self.label_ph_test, indices_test), self.label_ph_test.shape)
 
+        # calculate max_lenth in this batch
+        max_length = self.seq_len_ph[tf.argmax(self.seq_len_ph)]
+        self.input_ph = self.input_ph[:,:max_length]
+
         # inference
         def lstm_cell():
             return rnn.LSTMCell(self.hidden_size, use_peepholes=True, initializer=None,
@@ -65,13 +69,14 @@ class HWRModel(object):
                 parallel_iterations=None,
                 scope=scope
             )
-            # transposed to time_major
+            # merge forward and backward output by weighted combination
             fwbw_rh = tf.reshape(
-                fwbw, [-1, 1940, 2, self.hidden_size])
+                fwbw, [-1, max_length, 2, self.hidden_size])
             print("stack_bidirectional_dynamic_rnn:", fwbw_rh)
             weightsHidden = tf.Variable(tf.truncated_normal([2, self.hidden_size],
                                                             stddev=0.1))
             biasesHidden = tf.Variable(tf.zeros([self.hidden_size]))
+            # transposed to time_major
             fwbw_rh_tp_unst = tf.unstack(fwbw_rh, axis=1)
             print(fwbw_rh_tp_unst[0])
             fb_sum = [tf.reduce_sum(tf.multiply(
