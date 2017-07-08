@@ -126,9 +126,9 @@ def train_model():
         # Add ops to save and restore all the variables.
         saver = tf.train.Saver()
         train_summary_writer = tf.summary.FileWriter(
-            self.log_dir + 'ephoch_train', graph=graph)
+            FLAGS.log_dir + 'ephoch_train', graph=graph)
         valid_summary_writer = tf.summary.FileWriter(
-            self.log_dir + 'ephoch_valid', graph=graph)
+            FLAGS.log_dir + 'ephoch_valid', graph=graph)
         # Session
         with tf.Session() as sess:
             sess.run(init)
@@ -166,13 +166,13 @@ def train_model():
                     v_batch_idx = v_b * config.batch_size
                     # input, sequence length, label
                     v_input_batch = valid_data[v_batch_idx:v_batch_idx +
-                                                config.batch_size]
+                                               config.batch_size]
                     v_seq_len_batch = valid_seq_len[v_batch_idx:v_batch_idx +
                                                     config.batch_size]
                     v_dense_batch = valid_label[v_batch_idx:v_batch_idx +
                                                 config.batch_size]
                     v_losses = model.compute_losses(sess, v_input_batch,
-                                                v_seq_len_batch, v_dense_batch)
+                                                    v_seq_len_batch, v_dense_batch)
                     v_loss_sum += v_losses
 
                 # predict result
@@ -183,27 +183,30 @@ def train_model():
                 val_original = ''.join(
                     [letter_table[x] for x in dense_batch[0]])
                 end_time = time.time()
+                global_ephoch = int(global_step // train_num_batch)
                 print('Original val: %s' % val_original)
                 print('Decoded  val: %s' % str_decoded)
                 print("%d epoches, %d steps, mean loss: %f, valid mean loss: %f, time cost: %f(sec/batch), levenshtein: %f" %
-                        (ephoch,
-                        global_step,
-                        loss_sum / train_num_batch,
-                        v_loss_sum / valid_num_batch,
-                        (end_time - start_time) / train_num_batch,
-                        levenshtein))
+                      (global_ephoch,
+                       global_step,
+                       loss_sum / train_num_batch,
+                       v_loss_sum / valid_num_batch,
+                       (end_time - start_time) / train_num_batch,
+                       levenshtein))
                 start_time = end_time
-                train_summary = tf.Summary(value=[tf.Summary.Value(tag="ephoch_mean_loss", simple_value=loss_sum / train_num_batch)
-                valid_summary=tf.Summary(value=[tf.Summary.Value(tag="ephoch_mean_loss", simple_value=v_loss_sum / valid_num_batch)
+                train_summary = tf.Summary(value=[tf.Summary.Value(
+                    tag="ephoch_mean_loss", simple_value=loss_sum / train_num_batch)])
+                valid_summary = tf.Summary(value=[tf.Summary.Value(
+                    tag="ephoch_mean_loss", simple_value=v_loss_sum / valid_num_batch)])
                 train_summary_writer.add_summary(
-                    train_summary, global_step=ephoch)
+                    train_summary, global_step=global_ephoch)
                 valid_summary_writer.add_summary(
-                    valid_summary, global_step=ephoch)
+                    valid_summary, global_step=global_ephoch)
                 train_summary_writer.flush()
                 valid_summary_writer.flush()
 
                 if (global_step % FLAGS.save_freq) == 0:
-                    save_path=saver.save(
+                    save_path = saver.save(
                         sess, FLAGS.checkpoints_dir + "model.ckpt",
                         global_step=global_step)
                     print("Model saved in file: %s" % save_path)

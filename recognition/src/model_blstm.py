@@ -46,9 +46,9 @@ class HWRModel(object):
         self.label_sparse_test = tf.SparseTensor(indices_test, tf.gather_nd(
             self.label_ph_test, indices_test), self.label_ph_test.shape)
 
-        # calculate max_lenth in this batch
-        max_length = self.seq_len_ph[tf.argmax(self.seq_len_ph)]
-        self.input_ph = self.input_ph[:,:max_length]
+        # # calculate max_lenth in this batch
+        # max_length = self.seq_len_ph[tf.argmax(self.seq_len_ph)]
+        # self.input_ph = self.input_ph[:,:max_length]
 
         # inference
         def lstm_cell():
@@ -71,7 +71,7 @@ class HWRModel(object):
             )
             # merge forward and backward output by weighted combination
             fwbw_rh = tf.reshape(
-                fwbw, [-1, max_length, 2, self.hidden_size])
+                fwbw, [-1, 1940, 2, self.hidden_size])
             print("stack_bidirectional_dynamic_rnn:", fwbw_rh)
             weightsHidden = tf.Variable(tf.truncated_normal([2, self.hidden_size],
                                                             stddev=0.1))
@@ -153,7 +153,7 @@ class HWRModel(object):
                      self.seq_len_ph: seq_len,
                      self.label_ph: labels}
         losses = sess.run(
-            [self.losses_op], feed_dict=feed_dict)
+            self.losses_op, feed_dict=feed_dict)
         return losses
 
 
