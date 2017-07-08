@@ -157,6 +157,7 @@ def fit_sphere(data_path, result_path):
         ----[time]: float
         ----[dir]: float
         ----[vel]: float
+        ----[tag]: int
     """
     if not os.path.isdir(data_path):
         print ("ERROR: Directory Not Found:", data_path)
@@ -204,6 +205,7 @@ def fit_sphere(data_path, result_path):
                     temp_dict['time'] = raw_data['data'][i]['time']
                     temp_dict['dir'] = raw_data['data'][i]['direction']
                     temp_dict['vel'] = raw_data['data'][i]['velocity']
+                    temp_dict['tag'] = raw_data['data'][i]['tag']
                     word_data_list.append(temp_dict)
 
                 data_dict['uid'] = raw_data['id']
