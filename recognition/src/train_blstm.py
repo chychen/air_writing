@@ -25,7 +25,7 @@ tf.app.flags.DEFINE_integer('total_epoches', 300,
                             "total training epoches")
 tf.app.flags.DEFINE_integer('hidden_size', 128,
                             "size of LSTM hidden memory")
-tf.app.flags.DEFINE_integer('num_layers', 1,
+tf.app.flags.DEFINE_integer('num_layers', 2,
                             "number of stacked blstm")
 tf.app.flags.DEFINE_integer("input_dims", 10,
                             "input dimensions")
