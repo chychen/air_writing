@@ -123,8 +123,6 @@ class HWRModel(object):
         # summary writer
         self.train_summary_writer = tf.summary.FileWriter(
             self.log_dir + 'train', graph=graph)
-        self.valid_summary_writer = tf.summary.FileWriter(
-            self.log_dir + 'valid', graph=graph)
 
     def predict(self, sess, inputs, seq_len, labels):
         feed_dict = {self.input_ph: inputs,
@@ -149,8 +147,8 @@ class HWRModel(object):
         feed_dict = {self.input_ph: inputs,
                      self.seq_len_ph: seq_len,
                      self.label_ph: labels}
-        summary, losses = sess.run(
-            [self.merged_op, self.losses_op], feed_dict=feed_dict)
+        losses = sess.run(
+            [self.losses_op], feed_dict=feed_dict)
         return losses
 
 
