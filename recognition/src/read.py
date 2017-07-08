@@ -16,9 +16,6 @@ for row in k:
     print(row)
     gg = row.strip('\n')
     s.append(gg)
-    for aaa in gg:
-        if aaa in ['[', ']']:
-            input()
     if len(gg) > themax:
         print(len(gg))
         themax = len(gg)
@@ -30,8 +27,8 @@ for sentence in s:
     for char in sentence:
         if char not in l:
             print(sentence, "  ", char)
-
-dense = np.zeros((len(s), 64),dtype=np.int32)
+## trainning themax = 64
+dense = np.zeros((len(s), themax),dtype=np.int32)
 dense += -1
 length = np.zeros(len(s))
 print(l)
