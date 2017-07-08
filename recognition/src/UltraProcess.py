@@ -87,9 +87,12 @@ def main():
                     'WhiteboardDescription/DiagonallyOppositeCoords')[0]
                 x_max = int(cor_dial.get('x'))
                 y_max = int(cor_dial.get('y'))
+                x_min = min(x_list)
+                y_min = min(y_list)
+                scale = 1.0 / (y_max - y_min)
                 # normalize x_cor , y_cor
-                x_cor = x_cor / x_max
-                y_cor = y_cor / y_max
+                x_cor = (x_cor - x_min) * scale
+                y_cor = (y_cor - y_min) * scale
 
                 sin_list = []
                 cos_list = []
@@ -98,6 +101,7 @@ def main():
                 pen_up_list = []
                 writing_sin = []
                 writing_cos = []
+                
                 for stroke in e_tree.findall('StrokeSet/Stroke'):
                     x_point, y_point, time_list = [], [], []
                     for point in stroke.findall('Point'):
@@ -110,6 +114,8 @@ def main():
                             time_list.append(
                                 float(point.get('time')) - first_time)
                     # calculate cos and sin
+                    x_point[:] = [ (point - x_min) * scale for point in x_point]
+                    y_point[:] = [ (point - y_min) * scale for point in x_point]
 
                     angle_stroke = []
                     if len(x_point) < 3:
