@@ -41,8 +41,8 @@ tf.app.flags.DEFINE_float('momentum', 0.9,
                           "momentum of RMSPropOptimizer")
 tf.app.flags.DEFINE_float('max_length', 1940,
                           "pad to same length")
-tf.app.flags.DEFINE_float('label_pad', 63,
-                          "label pad size")
+tf.app.flags.DEFINE_integer('label_pad', 63,
+                            "label pad size")
 
 letter_table = [' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
                 'g', 'ga', 'h', 'i', 'j', 'k', 'km', 'l', 'm', 'n', 'o', 'p', 'pt', 'q', 'r', 's', 'sc', 'sp', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '<b>']
