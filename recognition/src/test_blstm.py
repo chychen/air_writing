@@ -86,53 +86,40 @@ class ModelConfig(object):
         print("max_length:", self.max_length)
 
 
-def train_model():
+def test_model():
     with tf.get_default_graph().as_default() as graph:
         # config setting
         config = ModelConfig()
         config.show()
         # load data
-        input_data = np.load('data.npy')
-        target_data = np.load('dense.npy').item()
-        label_data = target_data['dense'].astype(np.int32)
+        input_data = np.load('VRdataAll.npy')
+        label_data = np.load('VRlabelAll.npy')
 
         # label_seq_len = target_data['length'].astype(np.int32)
         seq_len_list = []
         for _, v in enumerate(input_data):
             seq_len_list.append(v.shape[0])
         seq_len_list = np.array(seq_len_list).astype(np.int32)
-        k = np.argmax(seq_len_list)
-        max_length = input_data[k].shape[0]
+        # k = np.argmax(seq_len_list)
+        # max_length = input_data[k].shape[0]
 
-        # padding each textline to maximum length -> max_length (1939)
+        # padding each textline to maximum length -> max_length (1940)
         padded_input_data = []
         for _, v in enumerate(input_data):
-            residual = max_length - v.shape[0]
+            residual = FLAGS.max_length - v.shape[0]
             padding_array = np.zeros([residual, FLAGS.input_dims])
             padded_input_data.append(
                 np.concatenate([v, padding_array], axis=0))
         padded_input_data = np.array(padded_input_data)
 
-        train_data, valid_data = np.split(
-            padded_input_data, [padded_input_data.shape[0] * 9 // 10])
-        train_seq_len, valid_seq_len = np.split(
-            seq_len_list, [seq_len_list.shape[0] * 9 // 10])
-        train_label, valid_label = np.split(
-            label_data, [label_data.shape[0] * 9 // 10])
-
         # number of batches
-        train_num_batch = int(train_label.shape[0] / config.batch_size)
-        valid_num_batch = int(valid_label.shape[0] / config.batch_size)
+        num_batch = int(padded_input_data.shape[0] / config.batch_size)
         # model
         model = model_blstm.HWRModel(config, graph)
         # Add an op to initialize the variables.
         init = tf.global_variables_initializer()
         # Add ops to save and restore all the variables.
         saver = tf.train.Saver()
-        train_summary_writer = tf.summary.FileWriter(
-            FLAGS.log_dir + 'ephoch_train', graph=graph)
-        valid_summary_writer = tf.summary.FileWriter(
-            FLAGS.log_dir + 'ephoch_valid', graph=graph)
         # Session
         with tf.Session() as sess:
             sess.run(init)
@@ -140,84 +127,48 @@ def train_model():
             if FLAGS.restore_path is not None:
                 saver.restore(sess, FLAGS.restore_path)
                 print("Model restored:", FLAGS.restore_path)
-            # time cost evaluation
-            start_time = time.time()
-            end_time = 0.0
-            for ephoch in range(config.total_epoches):
-                # Shuffle the data
-                shuffled_indexes = np.random.permutation(train_data.shape[0])
-                train_data = train_data[shuffled_indexes]
-                train_seq_len = train_seq_len[shuffled_indexes]
-                train_label = train_label[shuffled_indexes]
-                loss_sum = 0.0
-                for b in range(train_num_batch):
-                    batch_idx = b * config.batch_size
-                    # input, sequence length, label
-                    input_batch = train_data[batch_idx:batch_idx +
-                                             config.batch_size]
-                    seq_len_batch = train_seq_len[batch_idx:batch_idx +
-                                                  config.batch_size]
-                    dense_batch = train_label[batch_idx:batch_idx +
-                                              config.batch_size]
-                    # train
-                    global_step, losses = model.step(sess, input_batch,
-                                                     seq_len_batch, dense_batch)
-                    loss_sum += losses
-                # logging per ephoch
-                # validation
-                v_loss_sum = 0.0
-                for v_b in range(valid_num_batch):
-                    v_batch_idx = v_b * config.batch_size
-                    # input, sequence length, label
-                    v_input_batch = valid_data[v_batch_idx:v_batch_idx +
-                                               config.batch_size]
-                    v_seq_len_batch = valid_seq_len[v_batch_idx:v_batch_idx +
-                                                    config.batch_size]
-                    v_dense_batch = valid_label[v_batch_idx:v_batch_idx +
-                                                config.batch_size]
-                    v_losses = model.compute_losses(sess, v_input_batch,
-                                                    v_seq_len_batch, v_dense_batch)
-                    v_loss_sum += v_losses
-
-                # predict result
-                predict, levenshtein = model.predict(
-                    sess, input_batch[0:1], seq_len_batch[0:1], dense_batch[0:1])
+            # predict result
+            for i, v in enumerate(padded_input_data):
+                start_time = time.time()
+                predict = model.predict(
+                    sess, padded_input_data[0:1], seq_len_list[0:1])
                 str_decoded = ''.join(
                     [letter_table[x] for x in np.asarray(predict.values)])
-                val_original = ''.join(
-                    [letter_table[x] for x in dense_batch[0]])
                 end_time = time.time()
-                global_ephoch = int(global_step // train_num_batch)
-                print('Original val: %s' % val_original)
+                print('Original val: %s' % label_data[0])
                 print('Decoded  val: %s' % str_decoded)
-                print("%d epoches, %d steps, mean loss: %f, valid mean loss: %f, time cost: %f(sec/batch), levenshtein: %f" %
-                      (global_ephoch,
-                       global_step,
-                       loss_sum / train_num_batch,
-                       v_loss_sum / valid_num_batch,
-                       (end_time - start_time) / train_num_batch,
-                       levenshtein))
-                start_time = end_time
-                train_summary = tf.Summary(value=[tf.Summary.Value(
-                    tag="ephoch_mean_loss", simple_value=loss_sum / train_num_batch)])
-                valid_summary = tf.Summary(value=[tf.Summary.Value(
-                    tag="ephoch_mean_loss", simple_value=v_loss_sum / valid_num_batch)])
-                train_summary_writer.add_summary(
-                    train_summary, global_step=global_ephoch)
-                valid_summary_writer.add_summary(
-                    valid_summary, global_step=global_ephoch)
-                train_summary_writer.flush()
-                valid_summary_writer.flush()
+                print('Time Cost: %f' % (end_time-start_time))
+                input()
 
-                if (global_step % FLAGS.save_freq) == 0:
-                    save_path = saver.save(
-                        sess, FLAGS.checkpoints_dir + "model.ckpt",
-                        global_step=global_step)
-                    print("Model saved in file: %s" % save_path)
+            # loss_sum = 0.0
+            # for b in range(num_batch):
+            #     batch_idx = b * config.batch_size
+            #     # input, sequence length, label
+            #     input_batch = padded_input_data[batch_idx:batch_idx +
+            #                                     config.batch_size]
+            #     seq_len_batch = seq_len_list[batch_idx:batch_idx +
+            #                                  config.batch_size]
+            #     dense_batch = label_data[batch_idx:batch_idx +
+            #                              config.batch_size]
+            #     losses = model.compute_losses(sess, input_batch,
+            #                                   seq_len_batch, dense_batch)
+            #     loss_sum += losses
 
+            # # predict result
+            # predict, levenshtein = model.predict(
+            #     sess, input_batch[0:1], seq_len_batch[0:1], dense_batch[0:1])
+            # str_decoded = ''.join(
+            #     [letter_table[x] for x in np.asarray(predict.values)])
+            # val_original = ''.join(
+            #     [letter_table[x] for x in dense_batch[0]])
+            # print('Original val: %s' % val_original)
+            # print('Decoded  val: %s' % str_decoded)
+            # print("mean loss: %f, levenshtein: %f" %
+            #       (loss_sum / num_batch,
+            #        levenshtein))
 
 def main(_):
-    train_model()
+    test_model()
 
 
 if __name__ == "__main__":

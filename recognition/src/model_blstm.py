@@ -24,6 +24,7 @@ class HWRModel(object):
         self.learning_rate = config.learning_rate
         self.decay_rate = config.decay_rate
         self.momentum = config.momentum
+        self.max_length = config.max_length
 
         self.global_steps = tf.train.get_or_create_global_step(graph=graph)
         self.input_ph = tf.placeholder(dtype=tf.float32, shape=[
@@ -71,7 +72,7 @@ class HWRModel(object):
             )
             # merge forward and backward output by weighted combination
             fwbw_rh = tf.reshape(
-                fwbw, [-1, 1940, 2, self.hidden_size])
+                fwbw, [-1, self.max_length, 2, self.hidden_size])
             print("stack_bidirectional_dynamic_rnn:", fwbw_rh)
             weightsHidden = tf.Variable(tf.truncated_normal([2, self.hidden_size],
                                                             stddev=0.1))
@@ -129,13 +130,18 @@ class HWRModel(object):
         self.train_summary_writer = tf.summary.FileWriter(
             self.log_dir + 'train', graph=graph)
 
-    def predict(self, sess, inputs, seq_len, labels):
+    def predict(self, sess, inputs, seq_len, labels=None):
         feed_dict = {self.input_ph: inputs,
-                     self.seq_len_ph: seq_len,
-                     self.label_ph_test: labels}
-        decoded_seq, lev = sess.run(
-            [self.decoded_op[0], self.levenshtein], feed_dict=feed_dict)
-        return decoded_seq, lev
+                     self.seq_len_ph: seq_len}
+        if labels is not None:
+            feed_dict[self.label_ph_test] = labels
+            decoded_seq, lev = sess.run(
+                [self.decoded_op[0], self.levenshtein], feed_dict=feed_dict)
+            return decoded_seq, lev
+        else:
+            decoded_seq = sess.run(
+                self.decoded_op[0], feed_dict=feed_dict)
+            return decoded_seq
 
     def step(self, sess, inputs, seq_len, labels):
         feed_dict = {self.input_ph: inputs,
