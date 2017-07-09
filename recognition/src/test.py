@@ -1,7 +1,7 @@
 import numpy as np
 
-data = np.load('data.npy')
-label = np.load('label.npy')
+data = np.load('VRdataTag100.npy')
+label = np.load('VRlabelTag100.npy')
 
 print("data shape:", data.shape)
 print("label shape:", label.shape)
