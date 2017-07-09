@@ -10,7 +10,7 @@ for row in f:
 
 f.close()
 s = []
-k = np.load('label.npy')
+k = np.load('VRlabelAll.npy')
 themax = 0
 for row in k:
     print(row)
@@ -21,7 +21,7 @@ for row in k:
         themax = len(gg)
         # print(gg.strip('.'))
 
-
+print(themax)
 l += ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 for sentence in s:
     for char in sentence:
@@ -68,7 +68,7 @@ alldata = {}
 
 alldata['dense'] = dense
 alldata['length'] = length
-np.save("dense.npy", alldata)
+np.save("VRdense.npy", alldata)
 # print(row.strip('\n'))
 
 # import tensorflow as tf
