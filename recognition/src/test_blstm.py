@@ -92,8 +92,8 @@ def test_model():
         config = ModelConfig()
         config.show()
         # load data
-        input_data = np.load('VRdataAll.npy')
-        label_data = np.load('VRlabelAll.npy')
+        input_data = np.load('VRdataTag200New.npy')
+        label_data = np.load('VRlabelTag200New.npy')
 
         # label_seq_len = target_data['length'].astype(np.int32)
         seq_len_list = []
