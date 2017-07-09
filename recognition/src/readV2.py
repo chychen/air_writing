@@ -32,7 +32,7 @@ dense = np.zeros((len(s), themax),dtype=np.int32)
 dense += -1
 length = np.zeros(len(s))
 print(l)
-l = letter_table = [' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'ga', 'h', 'i', 'j', 'k', 'km', 'l', 'm', 'n', 'o', 'p', 'pt', 'q', 'r', 's', 'sc', 'sp', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '<b>']
+l  = [' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'ga', 'h', 'i', 'j', 'k', 'km', 'l', 'm', 'n', 'o', 'p', 'pt', 'q', 'r', 's', 'sc', 'sp', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '<b>']
 for idl, sentence in enumerate(s):
     sentence_iter = iter(sentence)
     length[idl] = len(sentence)
