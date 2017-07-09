@@ -321,5 +321,5 @@ def visual():
 
 
 if __name__ == "__main__":
-    # main()
-    visual()
+    main()
+    #visual()
