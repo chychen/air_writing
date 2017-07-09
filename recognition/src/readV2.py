@@ -10,7 +10,7 @@ for row in f:
 
 f.close()
 s = []
-k = np.load('VRlabelAll.npy')
+k = np.load('label.npy')
 themax = 0
 for row in k:
     print(row)
@@ -70,7 +70,7 @@ alldata = {}
 
 alldata['dense'] = dense
 alldata['length'] = length
-np.save("VRdense.npy", alldata)
+np.save("dense.npy", alldata)
 # print(row.strip('\n'))
 
 # import tensorflow as tf
