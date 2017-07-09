@@ -128,14 +128,14 @@ def test_model():
                 saver.restore(sess, FLAGS.restore_path)
                 print("Model restored:", FLAGS.restore_path)
             # predict result
-            for i, v in enumerate(padded_input_data):
+            for i, _ in enumerate(padded_input_data):
                 start_time = time.time()
                 predict = model.predict(
-                    sess, padded_input_data[0:1], seq_len_list[0:1])
+                    sess, padded_input_data[i:i+1], seq_len_list[i:i+1])
                 str_decoded = ''.join(
                     [letter_table[x] for x in np.asarray(predict.values)])
                 end_time = time.time()
-                print('Original val: %s' % label_data[0])
+                print('Original val: %s' % label_data[i])
                 print('Decoded  val: %s' % str_decoded)
                 print('Time Cost: %f' % (end_time-start_time))
                 input()
