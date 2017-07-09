@@ -25,6 +25,7 @@ class HWRModel(object):
         self.decay_rate = config.decay_rate
         self.momentum = config.momentum
         self.max_length = config.max_length
+        self.label_pad = config.label_pad
 
         self.global_steps = tf.train.get_or_create_global_step(graph=graph)
         self.input_ph = tf.placeholder(dtype=tf.float32, shape=[
@@ -32,7 +33,7 @@ class HWRModel(object):
         self.seq_len_ph = tf.placeholder(dtype=tf.int32, shape=[
             None], name='sequence_lenth')
         self.label_ph = tf.placeholder(dtype=tf.int32, shape=[
-            self.batch_size, 63], name='label_data')
+            self.batch_size, self.label_pad], name='label_data')
         # transform label from dense to sparse form
         # -1 -> sparse slots in dense presentation
         indices = tf.where(tf.not_equal(self.label_ph, -1))
@@ -41,7 +42,7 @@ class HWRModel(object):
 
         # testing only
         self.label_ph_test = tf.placeholder(dtype=tf.int32, shape=[
-            1, 63], name='label_data')
+            1, self.label_pad], name='label_data')
         # -1 -> sparse slots in dense presentation
         indices_test = tf.where(tf.not_equal(self.label_ph_test, -1))
         self.label_sparse_test = tf.SparseTensor(indices_test, tf.gather_nd(

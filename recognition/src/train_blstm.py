@@ -41,6 +41,8 @@ tf.app.flags.DEFINE_float('momentum', 0.9,
                           "momentum of RMSPropOptimizer")
 tf.app.flags.DEFINE_float('max_length', 1940,
                           "pad to same length")
+tf.app.flags.DEFINE_float('label_pad', 63,
+                          "label pad size")
 
 letter_table = [' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
                 'g', 'ga', 'h', 'i', 'j', 'k', 'km', 'l', 'm', 'n', 'o', 'p', 'pt', 'q', 'r', 's', 'sc', 'sp', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '<b>']
@@ -67,6 +69,7 @@ class ModelConfig(object):
         self.decay_rate = FLAGS.decay_rate
         self.momentum = FLAGS.momentum
         self.max_length = FLAGS.max_length
+        self.label_pad = FLAGS.label_pad
 
     def show(self):
         print("data_dir:", self.data_dir)
@@ -84,6 +87,7 @@ class ModelConfig(object):
         print("decay_rate:", self.decay_rate)
         print("momentum:", self.momentum)
         print("max_length:", self.max_length)
+        print("label_pad:", self.label_pad)
 
 
 def train_model():
