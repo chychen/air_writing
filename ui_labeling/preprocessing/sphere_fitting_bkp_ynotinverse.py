@@ -31,7 +31,7 @@ def normalize(positions):
     y_range = y_amax - y_amin
     scale = 1.0 / y_range
     result[:, 0] = (positions[:, 0] - x_amin) * scale
-    result[:, 1] = 1.0 - ((positions[:, 1] - y_amin) * scale)
+    result[:, 1] = (positions[:, 1] - y_amin) * scale
 
     return result
 
