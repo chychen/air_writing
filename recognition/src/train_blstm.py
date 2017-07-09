@@ -31,8 +31,8 @@ tf.app.flags.DEFINE_integer("input_dims", 10,
                             "input dimensions")
 tf.app.flags.DEFINE_integer("num_classes", 69,  # 68 letters + 1 blank
                             "num_labels + 1(blank)")
-tf.app.flags.DEFINE_integer('save_freq', 250,
-                            "frequency of saving model")
+tf.app.flags.DEFINE_integer('save_freq', 5,
+                            "ephoches of frequency of saving model")
 tf.app.flags.DEFINE_float('learning_rate', 0.001,
                           "learning rate of RMSPropOptimizer")
 tf.app.flags.DEFINE_float('decay_rate', 0.99,
@@ -143,7 +143,7 @@ def train_model():
             # time cost evaluation
             start_time = time.time()
             end_time = 0.0
-            for ephoch in range(config.total_epoches):
+            for _ in range(config.total_epoches):
                 # Shuffle the data
                 shuffled_indexes = np.random.permutation(train_data.shape[0])
                 train_data = train_data[shuffled_indexes]
@@ -209,7 +209,7 @@ def train_model():
                 train_summary_writer.flush()
                 valid_summary_writer.flush()
 
-                if (global_step % FLAGS.save_freq) == 0:
+                if (global_ephoch % FLAGS.save_freq) == 0:
                     save_path = saver.save(
                         sess, FLAGS.checkpoints_dir + "model.ckpt",
                         global_step=global_step)
