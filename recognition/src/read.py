@@ -68,7 +68,7 @@ alldata = {}
 
 alldata['dense'] = dense
 alldata['length'] = length
-np.save("dense.npy", alldata)
+np.save("VRdense.npy", alldata)
 # print(row.strip('\n'))
 
 # import tensorflow as tf
