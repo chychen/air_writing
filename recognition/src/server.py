@@ -1,14 +1,13 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import socket
-import numpy as np
-import json
-import train_blstm 
 import time
+import json
 import numpy as np
 import tensorflow as tf
-import model_blstm 
-
-
-
+import model_blstm
 
 
 FLAGS = tf.app.flags.FLAGS
@@ -31,7 +30,7 @@ tf.app.flags.DEFINE_integer('num_layers', 2,
                             "number of stacked blstm")
 tf.app.flags.DEFINE_integer("input_dims", 10,
                             "input dimensions")
-tf.app.flags.DEFINE_integer("num_classes", 69,  # 68 letters + 1 blank
+tf.app.flags.DEFINE_integer("num_classes", 43,  # 68 letters + 1 blank
                             "num_labels + 1(blank)")
 tf.app.flags.DEFINE_integer('save_freq', 250,
                             "frequency of saving model")
@@ -43,8 +42,10 @@ tf.app.flags.DEFINE_float('momentum', 0.9,
                           "momentum of RMSPropOptimizer")
 tf.app.flags.DEFINE_float('max_length', 1940,
                           "pad to same length")
+tf.app.flags.DEFINE_integer('label_pad', 63,
+                            "label pad size")
 
-letter_table = [' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+letter_table = [' ', 'a', 'b', 'c', 'd', 'e', 'f',
                 'g', 'ga', 'h', 'i', 'j', 'k', 'km', 'l', 'm', 'n', 'o', 'p', 'pt', 'q', 'r', 's', 'sc', 'sp', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '<b>']
 
 class ModelConfig(object):
@@ -68,6 +69,7 @@ class ModelConfig(object):
         self.decay_rate = FLAGS.decay_rate
         self.momentum = FLAGS.momentum
         self.max_length = FLAGS.max_length
+        self.label_pad = FLAGS.label_pad
 
     def show(self):
         print("data_dir:", self.data_dir)
@@ -85,16 +87,18 @@ class ModelConfig(object):
         print("decay_rate:", self.decay_rate)
         print("momentum:", self.momentum)
         print("max_length:", self.max_length)
+        print("label_pad:", self.label_pad)
 
 
-server_address = ('140.113.210.18',2001)
+server_address = ('140.113.210.19', 2001)
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.bind(server_address)
 
 sock.listen(1)
 
+
 def recvall(sock):
-    BUFF_SIZE = 4096 # 4 KiB
+    BUFF_SIZE = 4096  # 4 KiB
     data = ""
     while True:
         part = sock.recv(BUFF_SIZE)
@@ -103,6 +107,7 @@ def recvall(sock):
             # either 0 or end of data
             break
     return data
+
 
 with tf.get_default_graph().as_default() as graph:
     config = ModelConfig()
@@ -113,8 +118,9 @@ with tf.get_default_graph().as_default() as graph:
     with tf.Session() as sess:
         sess.run(init)
         saver.restore(sess, FLAGS.restore_path)
-        
+
         print("restore")
+        exit()
         while True:
             connection, clientAddr = sock.accept()
             try:
@@ -122,7 +128,7 @@ with tf.get_default_graph().as_default() as graph:
                 while True:
                     data = recvall(connection)
                     print(data.decode('utf-8'))
-                    ### process data
+                    # process data
                     input_data = data
                     #################
                     seq_len_list = []
@@ -136,19 +142,19 @@ with tf.get_default_graph().as_default() as graph:
                         padded_input_data.append(
                             np.concatenate([v, padding_array], axis=0))
                     padded_input_data = np.array(padded_input_data)
-                    num_batch = int(padded_input_data.shape[0] / config.batch_size)
+                    num_batch = int(
+                        padded_input_data.shape[0] / config.batch_size)
                     for i, _ in enumerate(padded_input_data):
                         start_time = time.time()
                         predict = model.predict(
-                            sess, padded_input_data[i:i+1], seq_len_list[i:i+1])
+                            sess, padded_input_data[i:i + 1], seq_len_list[i:i + 1])
                         str_decoded = ''.join(
                             [letter_table[x] for x in np.asarray(predict.values)])
                         end_time = time.time()
                         # print('Original val: %s' % label_data[i])
                         print('Decoded  val: %s' % str_decoded)
-                        print('Time Cost: %f' % (end_time-start_time))
+                        print('Time Cost: %f' % (end_time - start_time))
                         input()
-
 
                     # print("ok?")
                     # print(type(data))
