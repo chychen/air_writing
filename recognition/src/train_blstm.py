@@ -132,7 +132,7 @@ def train_model():
             # padding each label to same dense length -> label_pad (64)
             for _, v in enumerate(vr_valid_label_raw):
                 residual = FLAGS.label_pad - v.shape[0]
-                padding_array = np.zeros([residual])
+                padding_array = np.zeros([residual])-1
                 vr_valid_label.append(
                     np.concatenate([v, padding_array], axis=0))
             vr_valid_label = np.array(vr_valid_label)
@@ -231,14 +231,27 @@ def train_model():
                 global_ephoch = int(global_step // train_num_batch)
                 print('Original val: %s' % val_original)
                 print('Decoded  val: %s' % str_decoded)
-                print("%d epoches, %d steps, mean loss: %f, valid mean loss: %f, VR valid mean loss: %f, time cost: %f(sec/batch), levenshtein: %f" %
+                # predict vr result
+                vr_idx = global_step % FLAGS.batch_size
+                vr_predict, vr_levenshtein = model.predict(
+                    sess, vr_valid_data[vr_idx:vr_idx+1], vr_seq_len_list[vr_idx:vr_idx+1], vr_valid_label[vr_idx:vr_idx+1])
+                vr_str_decoded = ''.join(
+                    [letter_table[x] for x in np.asarray(vr_predict.values)])
+                vr_val_original = ''.join(
+                    [letter_table[x] for x in vr_valid_label[vr_idx]])
+                end_time = time.time()
+                global_ephoch = int(global_step // train_num_batch)
+                print('Original vr_val: %s' % vr_val_original)
+                print('Decoded  vr_val: %s' % vr_str_decoded)
+                print("%d epoches, %d steps, mean loss: %f, valid mean loss: %f, VR valid mean loss: %f, time cost: %f(sec/batch), levenshtein: %f, vr_levenshtein: %f" %
                       (global_ephoch,
                        global_step,
                        loss_sum / train_num_batch,
                        v_loss_sum / valid_num_batch,
                        vr_v_loss_sum,
                        (end_time - start_time) / train_num_batch,
-                       levenshtein))
+                       levenshtein,
+                       vr_levenshtein))
                 start_time = end_time
                 train_summary = tf.Summary(value=[tf.Summary.Value(
                     tag="ephoch_mean_loss", simple_value=loss_sum / train_num_batch)])
