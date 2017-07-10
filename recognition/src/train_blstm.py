@@ -43,6 +43,8 @@ tf.app.flags.DEFINE_float('max_length', 1940,
                           "pad to same length")
 tf.app.flags.DEFINE_integer('label_pad', 63,
                             "label pad size")
+tf.app.flags.DEFINE_boolean('if_valid_vr', False,
+                            "label pad size")
 
 letter_table = [' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
                 'g', 'ga', 'h', 'i', 'j', 'k', 'km', 'l', 'm', 'n', 'o', 'p', 'pt', 'q', 'r', 's', 'sc', 'sp', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '<b>']
@@ -70,6 +72,7 @@ class ModelConfig(object):
         self.momentum = FLAGS.momentum
         self.max_length = FLAGS.max_length
         self.label_pad = FLAGS.label_pad
+        self.if_valid_vr = FLAGS.if_valid_vr
 
     def show(self):
         print("data_dir:", self.data_dir)
@@ -88,6 +91,7 @@ class ModelConfig(object):
         print("momentum:", self.momentum)
         print("max_length:", self.max_length)
         print("label_pad:", self.label_pad)
+        print("if_valid_vr:", self.if_valid_vr)
 
 
 def train_model():
@@ -108,7 +112,34 @@ def train_model():
         k = np.argmax(seq_len_list)
         max_length = input_data[k].shape[0]
 
-        # padding each textline to maximum length -> max_length (1939)
+        if FLAGS.if_valid_vr:
+            vr_valid_data_raw = np.load('VRdataValidation.npy')[:FLAGS.batch_size]
+            vr_valid_target = np.load('VRdenseValidation.npy').item()
+            vr_valid_label_raw = vr_valid_target['dense'].astype(np.int32)[:FLAGS.batch_size]
+            vr_seq_len_list = []
+            for _, v in enumerate(vr_valid_data_raw):
+                vr_seq_len_list.append(v.shape[0])
+            vr_seq_len_list = np.array(vr_seq_len_list).astype(np.int32)
+            # padding each textline to maximum length -> max_length (1940)
+            vr_valid_data = []
+            for _, v in enumerate(vr_valid_data_raw):
+                residual = max_length - v.shape[0]
+                padding_array = np.zeros([residual, FLAGS.input_dims])
+                vr_valid_data.append(
+                    np.concatenate([v, padding_array], axis=0))
+            vr_valid_data = np.array(vr_valid_data)
+            vr_valid_label = []
+            # padding each label to same dense length -> label_pad (64)
+            for _, v in enumerate(vr_valid_label_raw):
+                residual = FLAGS.label_pad - v.shape[0]
+                padding_array = np.zeros([residual])
+                vr_valid_label.append(
+                    np.concatenate([v, padding_array], axis=0))
+            vr_valid_label = np.array(vr_valid_label)
+            print("vr_valid_data.shape", vr_valid_data.shape)
+            print("vr_valid_label.shape", vr_valid_label.shape)
+
+        # padding each textline to maximum length -> max_length (1940)
         padded_input_data = []
         for _, v in enumerate(input_data):
             residual = max_length - v.shape[0]
@@ -137,6 +168,8 @@ def train_model():
             FLAGS.log_dir + 'ephoch_train', graph=graph)
         valid_summary_writer = tf.summary.FileWriter(
             FLAGS.log_dir + 'ephoch_valid', graph=graph)
+        vr_valid_summary_writer = tf.summary.FileWriter(
+            FLAGS.log_dir + 'ephoch_vr_valid', graph=graph)
         # Session
         with tf.Session() as sess:
             sess.run(init)
@@ -183,6 +216,10 @@ def train_model():
                                                     v_seq_len_batch, v_dense_batch)
                     v_loss_sum += v_losses
 
+                # VR validation
+                vr_v_loss_sum = model.compute_losses(sess, vr_valid_data,
+                                                    vr_seq_len_list, vr_valid_label)
+
                 # predict result
                 predict, levenshtein = model.predict(
                     sess, input_batch[0:1], seq_len_batch[0:1], dense_batch[0:1])
@@ -194,11 +231,12 @@ def train_model():
                 global_ephoch = int(global_step // train_num_batch)
                 print('Original val: %s' % val_original)
                 print('Decoded  val: %s' % str_decoded)
-                print("%d epoches, %d steps, mean loss: %f, valid mean loss: %f, time cost: %f(sec/batch), levenshtein: %f" %
+                print("%d epoches, %d steps, mean loss: %f, valid mean loss: %f, VR valid mean loss: %f, time cost: %f(sec/batch), levenshtein: %f" %
                       (global_ephoch,
                        global_step,
                        loss_sum / train_num_batch,
                        v_loss_sum / valid_num_batch,
+                       vr_v_loss_sum,
                        (end_time - start_time) / train_num_batch,
                        levenshtein))
                 start_time = end_time
@@ -206,12 +244,17 @@ def train_model():
                     tag="ephoch_mean_loss", simple_value=loss_sum / train_num_batch)])
                 valid_summary = tf.Summary(value=[tf.Summary.Value(
                     tag="ephoch_mean_loss", simple_value=v_loss_sum / valid_num_batch)])
+                vr_valid_summary = tf.Summary(value=[tf.Summary.Value(
+                    tag="ephoch_mean_loss", simple_value=vr_v_loss_sum)])
                 train_summary_writer.add_summary(
                     train_summary, global_step=global_ephoch)
                 valid_summary_writer.add_summary(
                     valid_summary, global_step=global_ephoch)
+                vr_valid_summary_writer.add_summary(
+                    valid_summary, global_step=global_ephoch)
                 train_summary_writer.flush()
                 valid_summary_writer.flush()
+                vr_valid_summary_writer.flush()
 
                 if (global_ephoch % FLAGS.save_freq) == 0:
                     save_path = saver.save(
