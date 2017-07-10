@@ -10,7 +10,7 @@ import tensorflow as tf
 import model_blstm
 import atexit
 import sys
-
+import select
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('data_dir', '../data/',
@@ -93,38 +93,68 @@ class ModelConfig(object):
 
 server_address = ('140.113.210.18', 2001)
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
 sock.bind(server_address)
 def whenexit():
     connection.close()
     print("Exit and close connection")
+
 sock.listen(1)
 
 
+# def recvall(sock):
+#     BUFF_SIZE = 1  # 4 KiB
+#     data = ""
+#     while True:
+#         part = sock.recv(1024)
+#         print("One time")
+#         print("Size ", sys.getsizeof(part))
+#         if sys.getsizeof(part) < BUFF_SIZE:
+#             data += str(part)
+#             print("go here ")
+#             # either 0 or end of data
+#             break
+#         data += str(part)
+#     print("See!")
+#     print(data)
+#     return data
+
+# def recvall(sock):
+#     buf = sock.recv(4096)
+#     while buf:
+#         yield buf
+#         print("one time ",time.time())
+#         buf = sock.recv(4096)
+
 def recvall(sock):
-    BUFF_SIZE = 4096  # 4 KiB
-    data = ""
+    framents = []
     while True:
-        part = sock.recv(BUFF_SIZE)
-        if sys.getsizeof(part) < BUFF_SIZE:
-            part = part.decode()
-            data += part
-            # either 0 or end of data
+        buf = sock.recv(1024)
+        sentence = buf.decode('ascii')
+        # print(sentence)
+        mark = sentence[-3:]
+        # print("mark ",mark)
+        if sentence[-3:] == 'bye':
+            framents.append(sentence[:-3])
             break
-        part = part.decode()
-        data += part
+            # sock.sendall("good".encode('utf-8'))
+        else:
+            framents.append(sentence)
+    return framents
 
-    return data
-
+# def recvall(sock):
+#     data = sock.recv(5000000000)
+#     return str(data)
 
 with tf.get_default_graph().as_default() as graph:
-    config = ModelConfig()
-    config.show()
-    model = model_blstm.HWRModel(config, graph)
-    init = tf.global_variables_initializer()
-    saver = tf.train.Saver()
+    # config = ModelConfig()
+    # config.show()
+    # model = model_blstm.HWRModel(config, graph)
+    # init = tf.global_variables_initializer()
+    # saver = tf.train.Saver()
     with tf.Session() as sess:
-        sess.run(init)
-        saver.restore(sess, FLAGS.restore_path)
+        # sess.run(init)
+        # saver.restore(sess, FLAGS.restore_path)
 
         print("restore")
         # exit()
@@ -134,9 +164,17 @@ with tf.get_default_graph().as_default() as graph:
             try:
                 print('connection ', clientAddr)
                 while True:
-                    data = recvall(connection)
-                    print(data.decode('utf-8'))
+                    
+                    data = ''.join(recvall(connection))
+                    # print(type(data))
+                    # print(data[:30])
+                    json_data = json.loads(data)
+                    # print(json_data['data'][0])
+                    connection.sendall("Done".encode('utf-8'))
+                    connection.close()
+                    break
                     # process data
+                    input()
                     input_data = data
                     #################
                     seq_len_list = []
