@@ -251,7 +251,7 @@ def train_model():
                 valid_summary_writer.add_summary(
                     valid_summary, global_step=global_ephoch)
                 vr_valid_summary_writer.add_summary(
-                    valid_summary, global_step=global_ephoch)
+                    vr_valid_summary, global_step=global_ephoch)
                 train_summary_writer.flush()
                 valid_summary_writer.flush()
                 vr_valid_summary_writer.flush()

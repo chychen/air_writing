@@ -41,6 +41,10 @@ tf.app.flags.DEFINE_float('momentum', 0.9,
                           "momentum of RMSPropOptimizer")
 tf.app.flags.DEFINE_float('max_length', 1940,
                           "pad to same length")
+tf.app.flags.DEFINE_integer('label_pad', 63,
+                            "label pad size")
+tf.app.flags.DEFINE_boolean('if_valid_vr', False,
+                            "label pad size")
 
 letter_table = [' ', 'a', 'b', 'c', 'd', 'e', 'f',
                 'g', 'ga', 'h', 'i', 'j', 'k', 'km', 'l', 'm', 'n', 'o', 'p', 'pt', 'q', 'r', 's', 'sc', 'sp', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '<b>']
@@ -67,6 +71,8 @@ class ModelConfig(object):
         self.decay_rate = FLAGS.decay_rate
         self.momentum = FLAGS.momentum
         self.max_length = FLAGS.max_length
+        self.label_pad = FLAGS.label_pad
+        self.if_valid_vr = FLAGS.if_valid_vr
 
     def show(self):
         print("data_dir:", self.data_dir)
@@ -84,6 +90,9 @@ class ModelConfig(object):
         print("decay_rate:", self.decay_rate)
         print("momentum:", self.momentum)
         print("max_length:", self.max_length)
+        print("label_pad:", self.label_pad)
+        print("if_valid_vr:", self.if_valid_vr)
+
 
 
 def test_model():
@@ -92,8 +101,8 @@ def test_model():
         config = ModelConfig()
         config.show()
         # load data
-        input_data = np.load('VRdataAll.npy')
-        label_data = np.load('VRlabelAll.npy')
+        input_data = np.load('VRdataValidation.npy')
+        label_data = np.load('VRlabelValidation.npy')
 
         # label_seq_len = target_data['length'].astype(np.int32)
         seq_len_list = []
