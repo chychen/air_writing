@@ -139,6 +139,50 @@ def fit_radius(positions, head_position):
     return r
 
 
+def vr_sphere_fitting(raw_data):
+    """
+    input: raw_data: json
+    output: data_dict: json, normalized
+    """
+    data_dict = {}
+    word_data_list = []
+
+    pos_list = []
+    head_pos_list = []
+    for i in range(len(raw_data['data'])):
+        pos_list.append(raw_data['data'][i]['position'])
+        head_pos_list.append(raw_data['data'][i]['head'])
+    pos_list = np.array(pos_list)
+    head_pos_list = np.array(head_pos_list)
+
+    radius = fit_radius(pos_list, head_pos_list)
+
+    pos_new = project_onto_ball(pos_list, head_pos_list, radius)
+
+    ball_coordinates = transforme_onto_sphere_coordinates(
+        pos_new, head_pos_list)
+
+    normalized_pos = normalize(ball_coordinates)
+
+    for i, v in enumerate(normalized_pos):
+        temp_dict = {}
+        temp_dict['pos'] = v.tolist()
+        temp_dict['face'] = raw_data['data'][i]['face']
+        temp_dict['time'] = raw_data['data'][i]['time']
+        temp_dict['dir'] = raw_data['data'][i]['direction']
+        temp_dict['vel'] = raw_data['data'][i]['velocity']
+        temp_dict['tag'] = raw_data['data'][i]['tag']
+        word_data_list.append(temp_dict)
+
+    data_dict['uid'] = raw_data['id']
+    data_dict['name'] = raw_data['name']
+    data_dict['fps'] = raw_data['fps']
+    data_dict['word'] = raw_data['word']
+    data_dict['data'] = word_data_list
+    print ("Successfully normalized!")
+    return data_dict
+
+
 def fit_sphere(data_path, result_path):
     """
     params: data_path: location of the original data collected via VIVE(unity leap motion)

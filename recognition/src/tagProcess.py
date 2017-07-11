@@ -149,20 +149,21 @@ def Multifolders():
             word_all.append(word)
     text_line_data_all = np.array(text_line_data_all)
     word_all = np.array(word_all)
-    np.save("VRdataAll",text_line_data_all)
-    np.save("VRlabelAll", word_all)
+    np.save("VRdataValidation",text_line_data_all)
+    np.save("VRlabelValidation", word_all)
 
 def main():
-    file_list = os.listdir('2')
+    file_list = os.listdir('999')
     text_line_data_all = []
     word_all = []
     for each in file_list:
-        temp, word = transfer(os.path.join('2', each))
+        temp, word = transfer(os.path.join('999', each))
         text_line_data_all.append(temp)
         word_all.append(word)
     text_line_data_all = np.array(text_line_data_all)
     word_all = np.array(word_all)
-    np.save("VRdataTag",text_line_data_all)
-    np.save("VRlabelTag", word_all)
+    np.save("VRdataValidation",text_line_data_all)
+    np.save("VRlabelValidation", word_all)
 if __name__ == '__main__':
-    Multifolders()
+    main()
+    #Multifolders()
