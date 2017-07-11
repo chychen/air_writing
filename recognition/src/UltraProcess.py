@@ -1,14 +1,16 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import seaborn as sns
-from scipy import stats, integrate
-import matplotlib.pyplot as plt
+
 import os
 import xml.etree.ElementTree as ET
 import numpy as np
 import re
 import math
+
+
+
+
 
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 DATA_PATH = os.path.join(FILE_PATH, "../data/")
@@ -117,7 +119,7 @@ def main():
                                 float(point.get('time')) - first_time)
                     # calculate cos and sin
                     x_point[:] = [ (point - x_min) * scale for point in x_point]
-                    y_point[:] = [ (point - y_min) * scale for point in y_point]
+                    y_point[:] = [ (point - y_min) * scale for point in x_point]
 
                     angle_stroke = []
                     if len(x_point) < 3:
@@ -262,64 +264,5 @@ def main():
     print("Successfully saved!")
 
 
-def visual():
-    # parse STROKES (.xml)
-    x_all = []
-    y_all = []
-    for path_1, _, files in os.walk(STROKES_DATA_PATH):
-        files = sorted(files)
-        for file_name in files:  # TextLine files
-            ############# label data #############
-            # split our .xml (eg: a01-020w-01.xml -> a01-020w-01)
-            text_line_id = file_name[:-4]
-            label_text_line = find_textline_by_id(text_line_id)
-            if len(label_text_line) != 0:  # prevent missing data in ascii(label data)
-                # label_text_line_all.append(label_text_line)
-                ############# trajectory data #############
-                text_line_path = os.path.join(path_1, file_name)
-                e_tree = ET.parse(text_line_path).getroot()
-                x_list = []
-                y_list = []
-                time_stamp = []
-                first_time = 0.0
-                for atype in e_tree.findall('StrokeSet/Stroke/Point'):
-                    x_list.append(int(atype.get('x')))
-                    y_list.append(int(atype.get('y')))
-                    if len(time_stamp) == 0:
-                        first_time = float(atype.get('time'))
-                        time_stamp.append(0.0)
-                    else:
-                        time_stamp.append(
-                            float(atype.get('time')) - first_time)
-                    # print("x:", atype.get('x'), "y:", atype.get('y'), "time:", float(atype.get('time')) - first_time)
-                    # input()
-                ####curvature and speed #######################################
-                # x y coordinate
-                x_list = np.asarray(x_list, dtype=np.float32)
-                y_list = np.asarray(y_list, dtype=np.float32)
-                x_cor = np.copy(x_list)
-                y_cor = np.copy(y_list)
-                cor_dial = e_tree.findall(
-                    'WhiteboardDescription/DiagonallyOppositeCoords')[0]
-                x_max = int(cor_dial.get('x'))
-                y_max = int(cor_dial.get('y'))
-                x_min = min(x_list)
-                y_min = min(y_list)
-                scale = 1.0 / (y_max - y_min)
-                # normalize x_cor , y_cor
-                x_cor = (x_cor - x_min) * scale
-                y_cor = (y_cor - y_min) * scale
-                x_cor = x_cor.tolist()
-                y_cor = y_cor.tolist()
-                x_all += x_cor
-                y_all += y_cor
-    see_x = np.array(x_all)
-    see_y = np.array(y_all)
-    sns.distplot(see_y)
-    plt.show()
-
-
-
 if __name__ == "__main__":
     main()
-    #visual()
