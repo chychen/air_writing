@@ -12,6 +12,11 @@ import atexit
 import sys
 import select
 from tagProcess import transferS
+
+sys.path.append('../../ui_labeling/preprocessing')
+import sphere_fitting
+
+
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('data_dir', '../data/',
@@ -170,7 +175,9 @@ with tf.get_default_graph().as_default() as graph:
                     # print(type(data))
                     # print(data[:30])
                     json_data = json.loads(data)
-                    input_data = transferS(json_data)
+                    print(sphere_fitting.vr_sphere_fitting(json_data))
+                    input_data = transferS(sphere_fitting.vr_sphere_fitting(json_data))
+                    
                     # time.sleep(5)
                     # connection.sendall("Done".encode('utf-8'))
                     # connection.close()

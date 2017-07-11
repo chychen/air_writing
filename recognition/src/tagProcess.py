@@ -137,7 +137,7 @@ def transfer(file_name):
     # print(time_stamp[0])
     # print(time_stamp[1])
 def transferS(file_name):
-    json_data = json.loads(file_name)
+    json_data = file_name
 
     # word_list = json_data['word']
     x_list = [point['pos'][0] for point in json_data['data']]
