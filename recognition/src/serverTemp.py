@@ -11,6 +11,7 @@ import model_blstm
 import atexit
 import sys
 import select
+from tagProcess import transferS
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('data_dir', '../data/',
@@ -169,13 +170,13 @@ with tf.get_default_graph().as_default() as graph:
                     # print(type(data))
                     # print(data[:30])
                     json_data = json.loads(data)
-                    # print(json_data['data'][0])
-                    connection.sendall("Done".encode('utf-8'))
-                    connection.close()
-                    break
+                    input_data = transferS(json_data)
+                    # time.sleep(5)
+                    # connection.sendall("Done".encode('utf-8'))
+                    # connection.close()
+                    # break
                     # process data
-                    input()
-                    input_data = data
+
                     #################
                     seq_len_list = []
                     for _, v in enumerate(input_data):
@@ -200,8 +201,9 @@ with tf.get_default_graph().as_default() as graph:
                         # print('Original val: %s' % label_data[i])
                         print('Decoded  val: %s' % str_decoded)
                         print('Time Cost: %f' % (end_time - start_time))
-                        input()
-
+                        connection.sendall(str_decoded.encode('utf-8'))
+                        connection.close()
+                        print("connection close")
                     # print("ok?")
                     # print(type(data))
 

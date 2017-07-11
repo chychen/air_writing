@@ -135,7 +135,7 @@ def train_model():
                 padding_array = np.zeros([residual])-1
                 vr_valid_label.append(
                     np.concatenate([v, padding_array], axis=0))
-            vr_valid_label = np.array(vr_valid_label)
+            vr_valid_label = np.array(vr_valid_label).astype(np.int32)
             print("vr_valid_data.shape", vr_valid_data.shape)
             print("vr_valid_label.shape", vr_valid_label.shape)
 
