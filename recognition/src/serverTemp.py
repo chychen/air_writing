@@ -52,8 +52,9 @@ tf.app.flags.DEFINE_float('max_length', 1940,
 tf.app.flags.DEFINE_integer('label_pad', 63,
                             "label pad size")
 
-letter_table = [' ', 'a', 'b', 'c', 'd', 'e', 'f',
+letter_table = [' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
                 'g', 'ga', 'h', 'i', 'j', 'k', 'km', 'l', 'm', 'n', 'o', 'p', 'pt', 'q', 'r', 's', 'sc', 'sp', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '<b>']
+
 
 class ModelConfig(object):
     """
@@ -172,10 +173,11 @@ with tf.get_default_graph().as_default() as graph:
                 while True:
                     
                     data = ''.join(recvall(connection))
+                    print(time.time())
                     # print(type(data))
                     # print(data[:30])
                     json_data = json.loads(data)
-                    print(sphere_fitting.vr_sphere_fitting(json_data))
+                    #print(sphere_fitting.vr_sphere_fitting(json_data))
                     input_data = transferS(sphere_fitting.vr_sphere_fitting(json_data))
                     
                     # time.sleep(5)
@@ -210,7 +212,8 @@ with tf.get_default_graph().as_default() as graph:
                         print('Time Cost: %f' % (end_time - start_time))
                         connection.sendall(str_decoded.encode('utf-8'))
                         connection.close()
-                        print("connection close")
+                        print("inner connection close")
+                    break
                     # print("ok?")
                     # print(type(data))
 
