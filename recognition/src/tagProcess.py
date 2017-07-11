@@ -257,7 +257,7 @@ def transferS(file_name):
         print(each.shape)
     text_line_data = np.stack(
         (x_sp_list, y_sp_list, x_cor, y_cor, sin_list, cos_list, writing_sin, writing_cos, pen_up_list, time_stamp), axis=1)
-    return np.array(text_line_data)
+    return np.array([text_line_data])
 
 
 def Multifolders():
