@@ -28,7 +28,7 @@ tf.app.flags.DEFINE_integer('total_epoches', 300,
                             "total training epoches")
 tf.app.flags.DEFINE_integer('hidden_size', 128,
                             "size of LSTM hidden memory")
-tf.app.flags.DEFINE_integer('num_layers', 1,
+tf.app.flags.DEFINE_integer('num_layers', 2,
                             "number of stacked blstm")
 tf.app.flags.DEFINE_integer("input_dims", 10,
                             "input dimensions")
@@ -92,7 +92,7 @@ class ModelConfig(object):
         print("label_pad:", self.label_pad)
 
 
-server_address = ('140.113.210.18', 2001)
+server_address = ('140.113.210.19',2001)
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 sock.bind(server_address)
@@ -148,14 +148,14 @@ def recvall(sock):
 #     return str(data)
 
 with tf.get_default_graph().as_default() as graph:
-    # config = ModelConfig()
-    # config.show()
-    # model = model_blstm.HWRModel(config, graph)
-    # init = tf.global_variables_initializer()
-    # saver = tf.train.Saver()
+    config = ModelConfig()
+    config.show()
+    model = model_blstm.HWRModel(config, graph)
+    init = tf.global_variables_initializer()
+    saver = tf.train.Saver()
     with tf.Session() as sess:
-        # sess.run(init)
-        # saver.restore(sess, FLAGS.restore_path)
+        sess.run(init)
+        saver.restore(sess, FLAGS.restore_path)
 
         print("restore")
         # exit()
