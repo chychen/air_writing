@@ -111,7 +111,7 @@ class HWRModel(object):
 
         # levenshtein distance
         self.levenshtein = tf.reduce_mean(tf.edit_distance(tf.cast(decoded[0], tf.int32),
-                                                           self.label_sparse_test))
+                                                           self.label_sparse))
 
         # summary
         self.merged_op = tf.summary.merge_all()

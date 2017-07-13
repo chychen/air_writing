@@ -106,8 +106,8 @@ def train_model():
         config = ModelConfig()
         config.show()
         # load data
-        input_data = np.load('data.npy')
-        target_data = np.load('dense.npy').item()
+        input_data = np.load(FLAGS.data_dir + 'data.npy')
+        target_data = np.load(FLAGS.data_dir + 'dense.npy').item()
         label_data = target_data['dense'].astype(np.int32)
 
         # label_seq_len = target_data['length'].astype(np.int32)
@@ -224,10 +224,6 @@ def train_model():
                                                     v_seq_len_batch, v_dense_batch)
                     v_loss_sum += v_losses
 
-                # VR validation
-                vr_v_loss_sum = model.compute_losses(sess, vr_valid_data,
-                                                     vr_seq_len_list, vr_valid_label)
-
                 # predict result
                 predict, levenshtein = model.predict(
                     sess, input_batch[0:1], seq_len_batch[0:1], dense_batch[0:1])
@@ -239,43 +235,48 @@ def train_model():
                 global_ephoch = int(global_step // train_num_batch)
                 print('Original val: %s' % val_original)
                 print('Decoded  val: %s' % str_decoded)
-                # predict vr result
-                vr_idx = global_step % FLAGS.batch_size
-                vr_predict, vr_levenshtein = model.predict(
-                    sess, vr_valid_data[vr_idx:vr_idx + 1], vr_seq_len_list[vr_idx:vr_idx + 1], vr_valid_label[vr_idx:vr_idx + 1])
-                vr_str_decoded = ''.join(
-                    [letter_table[x] for x in np.asarray(vr_predict.values)])
-                vr_val_original = ''.join(
-                    [letter_table[x] for x in vr_valid_label[vr_idx]])
-                end_time = time.time()
-                global_ephoch = int(global_step // train_num_batch)
-                print('Original vr_val: %s' % vr_val_original)
-                print('Decoded  vr_val: %s' % vr_str_decoded)
-                print("%d epoches, %d steps, mean loss: %f, valid mean loss: %f, VR valid mean loss: %f, time cost: %f(sec/batch), levenshtein: %f, vr_levenshtein: %f" %
+                print("%d epoches, %d steps, mean loss: %f, valid mean loss: %f, time cost: %f(sec/batch), levenshtein: %f" %
                       (global_ephoch,
                        global_step,
                        loss_sum / train_num_batch,
                        v_loss_sum / valid_num_batch,
-                       vr_v_loss_sum,
                        (end_time - start_time) / train_num_batch,
-                       levenshtein,
-                       vr_levenshtein))
+                       levenshtein))
                 start_time = end_time
                 train_summary = tf.Summary(value=[tf.Summary.Value(
                     tag="ephoch_mean_loss", simple_value=loss_sum / train_num_batch)])
                 valid_summary = tf.Summary(value=[tf.Summary.Value(
                     tag="ephoch_mean_loss", simple_value=v_loss_sum / valid_num_batch)])
-                vr_valid_summary = tf.Summary(value=[tf.Summary.Value(
-                    tag="ephoch_mean_loss", simple_value=vr_v_loss_sum)])
                 train_summary_writer.add_summary(
                     train_summary, global_step=global_ephoch)
                 valid_summary_writer.add_summary(
                     valid_summary, global_step=global_ephoch)
-                vr_valid_summary_writer.add_summary(
-                    vr_valid_summary, global_step=global_ephoch)
                 train_summary_writer.flush()
                 valid_summary_writer.flush()
-                vr_valid_summary_writer.flush()
+
+                # VR validation
+                if FLAGS.if_valid_vr:
+                    vr_v_loss_sum = model.compute_losses(sess, vr_valid_data,
+                                                         vr_seq_len_list, vr_valid_label)
+                    # predict vr result
+                    vr_idx = global_step % FLAGS.batch_size
+                    vr_predict, vr_levenshtein = model.predict(
+                        sess, vr_valid_data[vr_idx:vr_idx + 1], vr_seq_len_list[vr_idx:vr_idx + 1], vr_valid_label[vr_idx:vr_idx + 1])
+                    vr_str_decoded = ''.join(
+                        [letter_table[x] for x in np.asarray(vr_predict.values)])
+                    vr_val_original = ''.join(
+                        [letter_table[x] for x in vr_valid_label[vr_idx]])
+                    print('Original vr_val: %s' % vr_val_original)
+                    print('Decoded  vr_val: %s' % vr_str_decoded)
+
+                    vr_valid_summary = tf.Summary(value=[tf.Summary.Value(
+                        tag="ephoch_mean_loss", simple_value=vr_v_loss_sum)])
+                    vr_valid_summary_writer.add_summary(
+                        vr_valid_summary, global_step=global_ephoch)
+                    vr_valid_summary_writer.flush()
+
+                    print("VR valid mean loss: %f, vr_levenshtein: %f" %
+                          (vr_v_loss_sum, vr_levenshtein))
 
                 if (global_ephoch % FLAGS.save_freq) == 0:
                     save_path = saver.save(
