@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AirWriting", "Assembly-CSharp.csproj", "{93BA1A6A-5246-377A-F4FD-4CAAB95532BB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AirWriting", "Assembly-CSharp-Editor.csproj", "{CC398A08-3657-96FB-A3D7-A5BAFE17A58A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{93BA1A6A-5246-377A-F4FD-4CAAB95532BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93BA1A6A-5246-377A-F4FD-4CAAB95532BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93BA1A6A-5246-377A-F4FD-4CAAB95532BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93BA1A6A-5246-377A-F4FD-4CAAB95532BB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CC398A08-3657-96FB-A3D7-A5BAFE17A58A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC398A08-3657-96FB-A3D7-A5BAFE17A58A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC398A08-3657-96FB-A3D7-A5BAFE17A58A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC398A08-3657-96FB-A3D7-A5BAFE17A58A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = Assembly-CSharp.csproj
+	EndGlobalSection
+EndGlobal

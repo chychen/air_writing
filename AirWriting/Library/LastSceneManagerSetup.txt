@@ -1,0 +1,4 @@
+sceneSetups:
+- path: Assets/LeapMotion/Scenes/Leap_Hands_Demo_Desktop.unity
+  isLoaded: 1
+  isActive: 1
