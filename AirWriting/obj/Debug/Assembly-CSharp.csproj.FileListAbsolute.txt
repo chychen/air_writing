@@ -1,1 +1,3 @@
 C:\Users\ec131b\Desktop\AirWriting\obj\Debug\Assembly-CSharp.csprojResolveAssemblyReference.cache
+C:\Users\ec131b\Desktop\air_writing_backup0412 - 複製\AirWriting\obj\Debug\Assembly-CSharp.csprojResolveAssemblyReference.cache
+C:\Users\ec131b\Desktop\air_writing_backup0414\AirWriting\obj\Debug\Assembly-CSharp.csprojResolveAssemblyReference.cache
