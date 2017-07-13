@@ -45,9 +45,15 @@ tf.app.flags.DEFINE_integer('label_pad', 63,
                             "label pad size")
 tf.app.flags.DEFINE_boolean('if_valid_vr', False,
                             "label pad size")
+tf.app.flags.DEFINE_boolean('if_lowercase_only', False,
+                            "if letter table only contain lowercase")
 
-letter_table = [' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
-                'g', 'ga', 'h', 'i', 'j', 'k', 'km', 'l', 'm', 'n', 'o', 'p', 'pt', 'q', 'r', 's', 'sc', 'sp', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '<b>']
+if FLAGS.if_lowercase_only:
+    letter_table = [' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'ga', 'h', 'i', 'j', 'k', 'km', 'l', 'm', 'n', 'o', 'p', 'pt',
+                    'q', 'r', 's', 'sc', 'sp', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '<b>']
+else:
+    letter_table = [' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+                    'g', 'ga', 'h', 'i', 'j', 'k', 'km', 'l', 'm', 'n', 'o', 'p', 'pt', 'q', 'r', 's', 'sc', 'sp', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '<b>']
 
 
 class ModelConfig(object):
@@ -113,9 +119,11 @@ def train_model():
         max_length = input_data[k].shape[0]
 
         if FLAGS.if_valid_vr:
-            vr_valid_data_raw = np.load('VRdataValidation.npy')[:FLAGS.batch_size]
+            vr_valid_data_raw = np.load('VRdataValidation.npy')[
+                :FLAGS.batch_size]
             vr_valid_target = np.load('VRdenseValidation.npy').item()
-            vr_valid_label_raw = vr_valid_target['dense'].astype(np.int32)[:FLAGS.batch_size]
+            vr_valid_label_raw = vr_valid_target['dense'].astype(np.int32)[
+                :FLAGS.batch_size]
             vr_seq_len_list = []
             for _, v in enumerate(vr_valid_data_raw):
                 vr_seq_len_list.append(v.shape[0])
@@ -132,7 +140,7 @@ def train_model():
             # padding each label to same dense length -> label_pad (64)
             for _, v in enumerate(vr_valid_label_raw):
                 residual = FLAGS.label_pad - v.shape[0]
-                padding_array = np.zeros([residual])-1
+                padding_array = np.zeros([residual]) - 1
                 vr_valid_label.append(
                     np.concatenate([v, padding_array], axis=0))
             vr_valid_label = np.array(vr_valid_label).astype(np.int32)
@@ -218,7 +226,7 @@ def train_model():
 
                 # VR validation
                 vr_v_loss_sum = model.compute_losses(sess, vr_valid_data,
-                                                    vr_seq_len_list, vr_valid_label)
+                                                     vr_seq_len_list, vr_valid_label)
 
                 # predict result
                 predict, levenshtein = model.predict(
@@ -234,7 +242,7 @@ def train_model():
                 # predict vr result
                 vr_idx = global_step % FLAGS.batch_size
                 vr_predict, vr_levenshtein = model.predict(
-                    sess, vr_valid_data[vr_idx:vr_idx+1], vr_seq_len_list[vr_idx:vr_idx+1], vr_valid_label[vr_idx:vr_idx+1])
+                    sess, vr_valid_data[vr_idx:vr_idx + 1], vr_seq_len_list[vr_idx:vr_idx + 1], vr_valid_label[vr_idx:vr_idx + 1])
                 vr_str_decoded = ''.join(
                     [letter_table[x] for x in np.asarray(vr_predict.values)])
                 vr_val_original = ''.join(

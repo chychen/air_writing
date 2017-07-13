@@ -9,9 +9,6 @@ import re
 import math
 
 
-
-
-
 FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 DATA_PATH = os.path.join(FILE_PATH, "../data/")
 LABEL_DATA_PATH = os.path.join(DATA_PATH, "ascii/")
@@ -105,7 +102,7 @@ def main():
                 pen_up_list = []
                 writing_sin = []
                 writing_cos = []
-                
+
                 for stroke in e_tree.findall('StrokeSet/Stroke'):
                     x_point, y_point, time_list = [], [], []
                     for point in stroke.findall('Point'):
@@ -118,8 +115,8 @@ def main():
                             time_list.append(
                                 float(point.get('time')) - first_time)
                     # calculate cos and sin
-                    x_point[:] = [ (point - x_min) * scale for point in x_point]
-                    y_point[:] = [ (point - y_min) * scale for point in x_point]
+                    x_point[:] = [(point - x_min) * scale for point in x_point]
+                    y_point[:] = [(point - y_min) * scale for point in x_point]
 
                     angle_stroke = []
                     if len(x_point) < 3:
@@ -153,7 +150,7 @@ def main():
                         for _ in range(len(x_point)):
                             x_sp_list += [0]
                             y_sp_list += [0]
-                            
+
                         if len(x_point) < 1:
                             print("Meet 0")
                             exit()

@@ -40,18 +40,6 @@ class HWRModel(object):
         self.label_sparse = tf.SparseTensor(indices, tf.gather_nd(
             self.label_ph, indices), self.label_ph.shape)
 
-        # testing only
-        self.label_ph_test = tf.placeholder(dtype=tf.int32, shape=[
-            1, self.label_pad], name='label_data')
-        # -1 -> sparse slots in dense presentation
-        indices_test = tf.where(tf.not_equal(self.label_ph_test, -1))
-        self.label_sparse_test = tf.SparseTensor(indices_test, tf.gather_nd(
-            self.label_ph_test, indices_test), self.label_ph_test.shape)
-
-        # # calculate max_lenth in this batch
-        # max_length = self.seq_len_ph[tf.argmax(self.seq_len_ph)]
-        # self.input_ph = self.input_ph[:,:max_length]
-
         # inference
         def lstm_cell():
             return rnn.LSTMCell(self.hidden_size, use_peepholes=True, initializer=None,
@@ -135,7 +123,7 @@ class HWRModel(object):
         feed_dict = {self.input_ph: inputs,
                      self.seq_len_ph: seq_len}
         if labels is not None:
-            feed_dict[self.label_ph_test] = labels
+            feed_dict[self.label_ph] = labels
             decoded_seq, lev = sess.run(
                 [self.decoded_op[0], self.levenshtein], feed_dict=feed_dict)
             return decoded_seq, lev
