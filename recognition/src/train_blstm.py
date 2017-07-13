@@ -109,6 +109,7 @@ def train_model():
         input_data = np.load(FLAGS.data_dir + 'data.npy')
         target_data = np.load(FLAGS.data_dir + 'dense.npy').item()
         label_data = target_data['dense'].astype(np.int32)
+        label_data_length = target_data['length'].astype(np.int32)
 
         # label_seq_len = target_data['length'].astype(np.int32)
         seq_len_list = []
@@ -162,6 +163,8 @@ def train_model():
             seq_len_list, [seq_len_list.shape[0] * 9 // 10])
         train_label, valid_label = np.split(
             label_data, [label_data.shape[0] * 9 // 10])
+        train_label_length, valid_label_length = np.split(
+            label_data_length, [label_data_length.shape[0] * 9 // 10])
 
         # number of batches
         train_num_batch = int(train_label.shape[0] / config.batch_size)
@@ -208,6 +211,7 @@ def train_model():
                     global_step, losses = model.step(sess, input_batch,
                                                      seq_len_batch, dense_batch)
                     loss_sum += losses
+                global_ephoch = int(global_step // train_num_batch)
                 # logging per ephoch
                 # validation
                 v_loss_sum = 0.0
@@ -225,14 +229,24 @@ def train_model():
                     v_loss_sum += v_losses
 
                 # predict result
+                v_batch_idx = global_ephoch % valid_num_batch
+                v_input_batch = valid_data[v_batch_idx:v_batch_idx +
+                                           config.batch_size]
+                v_seq_len_batch = valid_seq_len[v_batch_idx:v_batch_idx +
+                                                config.batch_size]
+                v_dense_batch = valid_label[v_batch_idx:v_batch_idx +
+                                            config.batch_size]
+                v_label_length_batch = valid_label_length[v_batch_idx:v_batch_idx +
+                                                          config.batch_size]
+                #visualize first data in validation batch
+                visual_target_length = v_label_length_batch[0]
                 predict, levenshtein = model.predict(
-                    sess, input_batch[0:1], seq_len_batch[0:1], dense_batch[0:1])
+                    sess, v_input_batch, v_seq_len_batch, v_dense_batch)
                 str_decoded = ''.join(
-                    [letter_table[x] for x in np.asarray(predict.values)])
+                    [letter_table[x] for x in np.asarray(predict.values[:visual_target_length])])
                 val_original = ''.join(
-                    [letter_table[x] for x in dense_batch[0]])
+                    [letter_table[x] for x in v_dense_batch[0]])
                 end_time = time.time()
-                global_ephoch = int(global_step // train_num_batch)
                 print('Original val: %s' % val_original)
                 print('Decoded  val: %s' % str_decoded)
                 print("%d epoches, %d steps, mean loss: %f, valid mean loss: %f, time cost: %f(sec/batch), levenshtein: %f" %
