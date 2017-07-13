@@ -18,7 +18,7 @@ NORMALIZED_DATA_DIR_PATH = os.path.join(DIR_PATH, 'normalized_voc/4322')
 FLAG_IF_VISULIZZATION = False
 
 
-def normalize(positions):
+def normalize(positions, y_upside_down=False):
     """
     params: positions: 2-d numpy array
     return: result: 2-d numpy array, normalize its height from 0 to 1, width starts from 0
@@ -31,7 +31,10 @@ def normalize(positions):
     y_range = y_amax - y_amin
     scale = 1.0 / y_range
     result[:, 0] = (positions[:, 0] - x_amin) * scale
-    result[:, 1] = 1.0 - ((positions[:, 1] - y_amin) * scale)
+    result[:, 1] = (positions[:, 1] - y_amin) * scale
+
+    if y_upside_down:
+        result[:, 1] = 1.0 - result[:, 1]
 
     return result
 
@@ -142,7 +145,7 @@ def fit_radius(positions, head_position):
 def vr_sphere_fitting(raw_data):
     """
     input: raw_data: json
-    output: data_dict: json, normalized
+    output: data_dict: json, normalized (upside down)
     """
     data_dict = {}
     word_data_list = []
@@ -162,7 +165,7 @@ def vr_sphere_fitting(raw_data):
     ball_coordinates = transforme_onto_sphere_coordinates(
         pos_new, head_pos_list)
 
-    normalized_pos = normalize(ball_coordinates)
+    normalized_pos = normalize(ball_coordinates, y_upside_down=true)
 
     for i, v in enumerate(normalized_pos):
         temp_dict = {}
