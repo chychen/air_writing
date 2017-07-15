@@ -1,4 +1,4 @@
-# On-Line Hand Writing Recognition using BLSTM   
+# On-Line Hand Writing Recognition using BLSTM [in-progress]
 ## Introduction
 This project is a final project of the 'Deep Learning and Practice' course hosted in NCTU 2017 SUMMER.  
 The air_writing project is basically but not totally following the ideals of [A Novel Approach to On-Line Handwriting Recognition Based on Bidirectional Long Short-Term Memory Networks](http://www.cs.toronto.edu/~bonner/courses/2016s/csc321/readings/A%20novel%20approach%20to%20on-line%20handwriting%20recognition%20based%20on%20bidirectional%20long%20short-term%20memory%20networks.pdf) to implement a BLSTM model using tensorflow.
