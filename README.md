@@ -19,7 +19,7 @@ The air_writing project is basically but not totally following the ideals of [A 
 
 2. Generate dense tensor input data: data.npy and label.npy.  
 ```python
-python air_writing/recognition/src UltraProcess.py
+python air_writing/recognition/src preprocess.py
 ```
   
 3. Generate the dense representation of label(text line): dense.npy
